@@ -83,8 +83,6 @@ export function Dashboard() {
       )}
       <Hero />
 
-      {/* Sticky action bar — keeps the run button reachable without scrolling
-          back up to the hero. */}
       <div className="review-bar">
         <div className="review-bar-inner">
           <div className="review-bar-meta">
@@ -113,92 +111,92 @@ export function Dashboard() {
       </div>
 
       <div className="page">
-      {error && <div className="card error-card">{error}</div>}
+        {error && <div className="card error-card">{error}</div>}
 
-      {!run && !running && (
-        <div className="card empty">
-          Press <b>Run review</b> to analyse the register, board notifications and agent letters.
-        </div>
-      )}
-      {running && (
-        <div className="reviewing-card">
-          <div className="reviewing-spinner" />
-          <div>
-            <div className="reviewing-title">Reviewing the portfolio…</div>
-            <div className="muted">
-              Matching notifications, analysing the register and reconciling agent letters. This takes about a minute.
+        {!run && !running && (
+          <div className="card empty">
+            Press <b>Run review</b> to analyse the register, board notifications and agent letters.
+          </div>
+        )}
+        {running && (
+          <div className="reviewing-card">
+            <div className="reviewing-spinner" />
+            <div>
+              <div className="reviewing-title">Reviewing the portfolio…</div>
+              <div className="muted">
+                Matching notifications, analysing the register and reconciling agent letters. This takes about a minute.
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {run?.summary && (
-        <div className="summary-box">
-          <h2>Summary for the General Counsel</h2>
-          <div>{run.summary}</div>
-        </div>
-      )}
-
-      {run && (
-        <>
-          <div className="stat-row">
-            <button className={`card stat ${!severityFilter ? "active" : ""}`}
-                    onClick={() => setSeverityFilter(null)}>
-              <div className="num">{run.stats.total}</div>
-              <div className="label">All issues</div>
-            </button>
-            {SEVERITIES.map((s) => (
-              <button key={s} className={`card stat ${s} ${severityFilter === s ? "active" : ""}`}
-                      onClick={() => setSeverityFilter(severityFilter === s ? null : s)}>
-                <div className="num">{run.stats[s]}</div>
-                <div className="label">{SEVERITY_LABELS[s]}</div>
-              </button>
-            ))}
+        {run?.summary && (
+          <div className="summary-box">
+            <h2>Summary for the General Counsel</h2>
+            <div>{run.summary}</div>
           </div>
+        )}
 
-          <div className="controls">
-            <span className="controls-label">Filter by type</span>
-            {categories.map((c) => (
-              <button key={c} className={`chip ${categoryFilter === c ? "on" : ""}`}
-                      onClick={() => setCategoryFilter(categoryFilter === c ? null : c)}>
-                {CATEGORY_LABELS[c] ?? c}
+        {run && (
+          <>
+            <div className="stat-row">
+              <button className={`card stat ${!severityFilter ? "active" : ""}`}
+                      onClick={() => setSeverityFilter(null)}>
+                <div className="num">{run.stats.total}</div>
+                <div className="label">All issues</div>
               </button>
-            ))}
-            {filtersActive && (
-              <button className="chip clear"
-                      onClick={() => { setSeverityFilter(null); setCategoryFilter(null); }}>
-                Clear filters
-              </button>
+              {SEVERITIES.map((s) => (
+                <button key={s} className={`card stat ${s} ${severityFilter === s ? "active" : ""}`}
+                        onClick={() => setSeverityFilter(severityFilter === s ? null : s)}>
+                  <div className="num">{run.stats[s]}</div>
+                  <div className="label">{SEVERITY_LABELS[s]}</div>
+                </button>
+              ))}
+            </div>
+
+            <div className="controls">
+              <span className="controls-label">Filter by type</span>
+              {categories.map((c) => (
+                <button key={c} className={`chip ${categoryFilter === c ? "on" : ""}`}
+                        onClick={() => setCategoryFilter(categoryFilter === c ? null : c)}>
+                  {CATEGORY_LABELS[c] ?? c}
+                </button>
+              ))}
+              {filtersActive && (
+                <button className="chip clear"
+                        onClick={() => { setSeverityFilter(null); setCategoryFilter(null); }}>
+                  Clear filters
+                </button>
+              )}
+            </div>
+
+            <div className="list-head">
+              <span>
+                {severityFilter ? SEVERITY_LABELS[severityFilter] : "All issues"}
+                {categoryFilter ? ` · ${CATEGORY_LABELS[categoryFilter] ?? categoryFilter}` : ""}
+              </span>
+              <span className="muted">{filtered.length} {filtered.length === 1 ? "issue" : "issues"}</span>
+            </div>
+
+            {pageItems.map((f) => <FindingCard key={f.id} finding={f} />)}
+
+            {filtered.length === 0 && (
+              <div className="card empty">No issues match the current filters.</div>
             )}
-          </div>
 
-          <div className="list-head">
-            <span>
-              {severityFilter ? SEVERITY_LABELS[severityFilter] : "All issues"}
-              {categoryFilter ? ` · ${CATEGORY_LABELS[categoryFilter] ?? categoryFilter}` : ""}
-            </span>
-            <span className="muted">{filtered.length} {filtered.length === 1 ? "issue" : "issues"}</span>
-          </div>
-
-          {pageItems.map((f) => <FindingCard key={f.id} finding={f} />)}
-
-          {filtered.length === 0 && (
-            <div className="card empty">No issues match the current filters.</div>
-          )}
-
-          {pageCount > 1 && (
-            <div className="pager">
-              <button className="chip" disabled={current === 1} onClick={() => setPage(current - 1)}>
-                ← Previous
-              </button>
-              <span className="pager-info">Page {current} of {pageCount}</span>
-              <button className="chip" disabled={current === pageCount} onClick={() => setPage(current + 1)}>
-                Next →
-              </button>
-            </div>
-          )}
-        </>
-      )}
+            {pageCount > 1 && (
+              <div className="pager">
+                <button className="chip" disabled={current === 1} onClick={() => setPage(current - 1)}>
+                  ← Previous
+                </button>
+                <span className="pager-info">Page {current} of {pageCount}</span>
+                <button className="chip" disabled={current === pageCount} onClick={() => setPage(current + 1)}>
+                  Next →
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </>
   );

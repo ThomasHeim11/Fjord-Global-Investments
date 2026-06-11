@@ -27,15 +27,18 @@ export function EntityDetail() {
       <div className="card" style={{ marginTop: 16 }}>
         <dl className="kv">
           <dt>Status</dt><dd>{entity.status}</dd>
-          <dt>Asset</dt><dd>{entity.asset_class} — {entity.asset_description}</dd>
+          <dt>Asset</dt><dd>{entity.asset_class}: {entity.asset_description}</dd>
           <dt>Incorporated</dt><dd>{entity.incorporation_date}</dd>
-          <dt>Parent</dt>
+          <dt>Owned by</dt>
           <dd>{entity.parent_entity_id
-            ? <Link to={`/entities/${entity.parent_entity_id}`}>{entity.parent_entity_id}</Link>
-            : "— (top of structure)"}{entity.ownership_pct != null && ` · ${entity.ownership_pct}% owned`}</dd>
+            ? <>
+                <Link to={`/entities/${entity.parent_entity_id}`}>{entity.parent_entity_id}</Link>
+                {entity.ownership_pct != null && ` (${entity.ownership_pct}%)`}
+              </>
+            : "Top of structure (no parent company)"}</dd>
           <dt>Registered address</dt><dd>{entity.registered_address}</dd>
           <dt>Registered agent</dt><dd>{entity.registered_agent}</dd>
-          <dt>Board</dt><dd>{entity.board_members}</dd>
+          <dt>Board members</dt><dd>{entity.board_members}</dd>
           <dt>Mandate expiry</dt><dd>{entity.board_mandate_expiry}</dd>
           <dt>Annual filing</dt>
           <dd>due {entity.annual_filing_due} · {entity.annual_filing_status}</dd>
