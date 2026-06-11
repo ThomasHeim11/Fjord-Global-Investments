@@ -128,31 +128,18 @@ a:hover { color: var(--red); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .reviewing-title { font-weight: 700; color: var(--midnight); margin-bottom: 2px; }
 
-.review-bar-actions { display: flex; align-items: center; gap: 10px; }
-
-/* secondary "clear" button — rounded, outline style */
-.clear-btn {
-  background: transparent; color: var(--ink-soft);
-  border: 1px solid var(--medium-gray);
-  padding: 9px 18px; border-radius: 99px;
-  font-size: 13px; font-weight: 600; font-family: inherit;
-  cursor: pointer; white-space: nowrap; transition: border-color .12s, color .12s;
-}
-.clear-btn:hover { border-color: var(--red); color: var(--red); }
-.clear-btn:disabled { opacity: 0.5; cursor: wait; }
-
-/* friendly rounded run button */
+/* the one primary action: big, rounded, unmissable */
 .run-btn {
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex; align-items: center; gap: 10px;
   background: var(--accent); color: #fff; border: none;
-  padding: 10px 22px; border-radius: 99px;
-  font-size: 14px; font-weight: 700; font-family: inherit; letter-spacing: 0.01em;
+  padding: 16px 36px; border-radius: 99px;
+  font-size: 16px; font-weight: 700; font-family: inherit; letter-spacing: 0.01em;
   cursor: pointer; white-space: nowrap;
-  box-shadow: 0 1px 6px rgba(0, 38, 255, 0.18);
+  box-shadow: 0 2px 12px rgba(0, 38, 255, 0.25);
   transition: background .12s, transform .12s, box-shadow .12s;
 }
 .run-btn::before {
-  content: "↻"; font-size: 16px; font-weight: 700; line-height: 1;
+  content: "↻"; font-size: 19px; font-weight: 700; line-height: 1;
 }
 .run-btn:hover { background: var(--midnight); transform: translateY(-1px); box-shadow: 0 3px 12px rgba(0,21,56,0.22); }
 .run-btn:active { transform: translateY(0); }

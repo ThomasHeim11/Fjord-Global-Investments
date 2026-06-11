@@ -41,23 +41,6 @@ export function Dashboard() {
     }
   };
 
-  const clearAndRerun = async () => {
-    setRunning(true);
-    setError(null);
-    setSeverityFilter(null);
-    setCategoryFilter(null);
-    try {
-      await api.clearDigest();
-      setDigest({ run: null, findings: [] });
-      await api.triggerDigest();
-      await load();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setRunning(false);
-    }
-  };
-
   const findings = digest?.findings ?? [];
   const categories = useMemo(() => [...new Set(findings.map((f) => f.category))], [findings]);
 
@@ -97,16 +80,9 @@ export function Dashboard() {
               <span className="review-bar-label">No review run yet</span>
             )}
           </div>
-          <div className="review-bar-actions">
-            {run && (
-              <button className="clear-btn" onClick={clearAndRerun} disabled={running}>
-                Clear &amp; re-run fresh
-              </button>
-            )}
-            <button className="run-btn" onClick={runDigest} disabled={running}>
-              {running ? "Reviewing…" : run ? "Run review again" : "Run review"}
-            </button>
-          </div>
+          <button className="run-btn" onClick={runDigest} disabled={running}>
+            {running ? "Reviewing…" : run ? "Run review again" : "Run review"}
+          </button>
         </div>
       </div>
 
