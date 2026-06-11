@@ -1,0 +1,19 @@
+.DS_Store
+**/.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Secrets — never commit real keys
+.env
+backend/.env
+
+# Derived state (rebuilt from data/ on first run)
+backend/storage/
+
+# Node / frontend build
+node_modules/
+frontend/dist/
