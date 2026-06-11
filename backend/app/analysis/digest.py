@@ -1,5 +1,5 @@
 """Digest orchestration: the POST /digest pipeline. Pure LLM by design —
-every finding comes from a model pass, not hand-written rules.
+every finding comes from a model pass.
 
   1. resolution   — LLM matches messy update names → register ids
   2. unresolved   — updates that match nothing become unknown_entity findings

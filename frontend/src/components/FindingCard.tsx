@@ -1,19 +1,24 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CATEGORY_LABELS, SEVERITY_LABELS, SOURCE_LABELS } from "../labels";
 import type { Finding } from "../types";
 
+// Tidy LLM-written titles for display: drop the "letter says X, register
+// says Y" tail (the comparison box shows it better), "(N/A)" placeholders,
+// and the entity ID when the badge already shows it.
+function cleanTitle(raw: string, entityId: string | null): string {
+  let t = raw.split("—")[0];
+  t = t.replace(/:?\s*\(N\/A\)/gi, "");
+  if (entityId) t = t.replace(`(${entityId})`, "");
+  return t.replace(/\s+/g, " ").trim().replace(/[:\-–—·,]\s*$/, "");
+}
+
 export function FindingCard({ finding }: { finding: Finding }) {
   const ev = finding.evidence ?? {};
 
-  // The only evidence worth showing is a real source comparison
-  // (letter says X / register says Y). Thin restatements add nothing.
+  // A source comparison (letter says X / register says Y) is the insight
+  // itself — always shown, no toggle.
   const hasComparison = "letter_says" in ev || "register_says" in ev;
   const letter = typeof ev.letter === "string" ? ev.letter : null;
-
-  // Show the comparison by default on critical conflicts; collapse it otherwise.
-  const showByDefault = hasComparison && finding.severity === "critical";
-  const [open, setOpen] = useState(showByDefault);
 
   return (
     <div className={`card finding ${finding.severity}`}>
@@ -22,7 +27,7 @@ export function FindingCard({ finding }: { finding: Finding }) {
         <span className="badge neutral">
           {CATEGORY_LABELS[finding.category] ?? finding.category}
         </span>
-        <h3>{finding.title}</h3>
+        <h3>{cleanTitle(finding.title, finding.entity_id)}</h3>
         {finding.entity_id && (
           <Link to={`/entities/${finding.entity_id}`} className="badge ok">
             {finding.entity_id}
@@ -32,7 +37,7 @@ export function FindingCard({ finding }: { finding: Finding }) {
 
       <p className="desc">{finding.description}</p>
 
-      {hasComparison && open && (
+      {hasComparison && (
         <div className="compare">
           <div className="compare-col letter">
             <div className="compare-label">Per the agent letter{letter ? ` · ${letter}` : ""}</div>
@@ -54,11 +59,6 @@ export function FindingCard({ finding }: { finding: Finding }) {
       )}
 
       <div className="finding-foot">
-        {hasComparison && !showByDefault && (
-          <button className="link-btn" onClick={() => setOpen(!open)}>
-            {open ? "Hide comparison" : "Compare letter vs register"}
-          </button>
-        )}
         <span className="provenance">{SOURCE_LABELS[finding.detected_by] ?? finding.detected_by}</span>
       </div>
     </div>

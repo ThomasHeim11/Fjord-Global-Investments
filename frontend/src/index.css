@@ -161,7 +161,7 @@ a:hover { color: var(--red); }
 /* NBIM-style hero banner — full-bleed photo + headline number overlay */
 .hero-banner {
   width: 100%;
-  min-height: min(78vh, 760px);
+  min-height: min(54vh, 540px);
   background-size: cover;
   background-position: center 45%;
   display: flex;
@@ -221,7 +221,12 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 6
   border-radius: 6px;
   padding: 20px 24px;
 }
-.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 28px 0; }
+.stat-hint {
+  margin: 24px 0 0;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--ink-muted); font-weight: 600;
+}
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 10px 0 28px; }
 .stat-row .card.stat {
   background: var(--sky); border: 2px solid transparent; padding: 24px;
   text-align: left; cursor: pointer; font-family: inherit; transition: border-color .12s;
@@ -435,6 +440,8 @@ td a { color: var(--accent); }
   color: #4ec2e2;               /* --color-sea */
   font-weight: 700;
 }
+.summary-box p { margin: 0 0 10px; }
+.summary-box p:last-child { margin-bottom: 0; }
 .muted { color: var(--ink-muted); font-size: 13.5px; }
 .kv { display: grid; grid-template-columns: 190px 1fr; row-gap: 10px; margin: 6px 0; }
 .kv dt { color: var(--ink-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; padding-top: 2px; }

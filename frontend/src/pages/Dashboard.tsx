@@ -133,12 +133,15 @@ export function Dashboard() {
         {run?.summary && (
           <div className="summary-box">
             <h2>Summary for the General Counsel</h2>
-            <div>{run.summary}</div>
+            {run.summary.split(/\n+/).filter(Boolean).map((para, i) => (
+              <p key={i}>{para.replace(/^[-•*]\s*/, "")}</p>
+            ))}
           </div>
         )}
 
         {run && (
           <>
+            <div className="stat-hint">Click a card to filter the list</div>
             <div className="stat-row">
               <button className={`card stat ${!severityFilter ? "active" : ""}`}
                       onClick={() => setSeverityFilter(null)}>

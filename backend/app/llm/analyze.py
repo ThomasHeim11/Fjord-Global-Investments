@@ -27,9 +27,11 @@ from .client import parse_structured
 ENTITY_BATCH = 5 if LLM_PROVIDER == "ollama" else 25
 
 TITLE_RULE = """
-Titles MUST be specific: name the entity (legal name and register ID when
-known) and the concrete issue, e.g. "Annual filing overdue: FGI Dublin
-Mixed-Use III Ltd (FGI-004)" — never a generic label like "Overdue Filing"."""
+Titles MUST be specific: name the entity (legal name when known) and the
+concrete issue, e.g. "Annual filing overdue: FGI Dublin Mixed-Use III Ltd".
+Never a generic label like "Overdue Filing". Never use the em-dash character,
+"(N/A)", or a parenthesised register ID in the title (the ID goes in the
+entity_id field); if the entity name is unknown, use the register ID alone."""
 
 
 class AnalysisFinding(BaseModel):

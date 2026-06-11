@@ -81,8 +81,9 @@ UNLESS the name is clearly a typo/variant of a similar register name, in
 which case mark it 'conflict' and name the likely match. Write one finding
 per absent name — no more, no fewer."""
 
-EXISTENCE_TITLE = ('Titles MUST be specific, e.g. "Unknown entity in agent '
-                   'letter: FGI Amsterdam Office II B.V. — not in register".')
+EXISTENCE_TITLE = ('Titles MUST be specific and plain, e.g. "Unknown entity in '
+                   'agent letter: FGI Amsterdam Office II B.V.". Never use the '
+                   'em-dash character in titles.')
 
 
 class ExistenceFinding(BaseModel):
@@ -107,9 +108,11 @@ members, filing due date, filing status, or entity status. Quote both values.
 If a field agrees, say nothing about it; if everything agrees, return an empty
 list. NEVER emit placeholder findings like 'No conflict found'. Severity
 'critical' for mandate/board/status/existence contradictions, 'warning'
-otherwise. Titles MUST name the entity, its register ID and the discrepancy,
-e.g. "Mandate expiry conflict: FGI Treasury & Financing S.à r.l. (FGI-046) —
-letter says 2026-06-19, register says 2028-01-10"."""
+otherwise. Titles MUST name the entity and the field that differs, e.g.
+"Mandate expiry conflict: FGI Treasury & Financing S.à r.l." — keep the
+differing VALUES out of the title (they belong in letter_says/register_says),
+never use the em-dash character in titles, and put the register ID only in
+the entity_id field, not the title."""
 
 
 class ConflictFinding(BaseModel):
