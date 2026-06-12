@@ -2,27 +2,30 @@
 
 ## What the application does
 
-The app has three pages:
+```
+   Your three data sources                          Three ways to use it
+   -----------------------                          --------------------
 
-**Review** is the heart of the tool. Press "Run review" and the AI reads the
-subsidiary register, the board-change notifications and the agent letters,
-then presents every governance issue it found: a summary written for the
-General Counsel, urgency counters (Act now / Review soon / For awareness),
-and one card per issue with a plain explanation and a recommended action.
-Where two sources disagree, the card shows both side by side:
-"Per the agent letter: 2026-06-19. Per our register: 2028-01-10."
+   register.csv   (100 entities) --+            +-->  REVIEW    ranked governance issues
+   board_updates.json  (~30)       +-- ingest --+-->  REGISTER  the register, searchable
+   3 agent letters     (PDF)     --+            +-->  ASK       answers, with sources
+```
 
-**Register** is the subsidiary register itself, finally searchable: all 100
-entities in a table you can filter and sort, with colour-coded status. Click
-any entity to see its full record, who owns it, what it owns, the
-notifications matched to it, and any issues found on it. This is the page for
-the daily question "tell me about entity X."
+**Review** is the heart of the tool. One click, and the AI reads all three
+sources and lists every governance issue it found, each ranked Act now /
+Review soon / For awareness, with a plain explanation and a recommended
+action. Where two sources disagree it shows both side by side: "Per the agent
+letter: 2026-06-19. Per our register: 2028-01-10."
 
-**Ask** answers natural-language questions, with sources cited:
-"Which Singapore entities have open compliance issues?" or
-"Which board mandates expire in the next 60 days?"
+**Register** is the subsidiary register, finally searchable: all 100 entities
+in a table you can filter and sort, colour-coded by status. Click any entity
+for its full record, who owns it, what it owns, and any issues found on it.
 
-## For the technically curious: how it works
+**Ask** answers natural-language questions with sources cited, for example
+"Which Singapore entities have open compliance issues?" or "Which board
+mandates expire in the next 60 days?"
+
+## How it works
 
 ```
 data/ (CSV, JSON, PDFs)
@@ -55,47 +58,6 @@ React frontend (Vite + TypeScript), styled on nbim.no's design tokens
 **Stack:** FastAPI + SQLite on the backend, React on the frontend, LLMs via
 Groq (free-tier open models) with local Ollama as fallback and Anthropic as a
 config option.
-
-### Design decisions worth knowing
-
-- **The LLM is the analyst.** Every finding comes from a model pass, so a new
-  risk pattern, jurisdiction or letter format next quarter requires no code
-  change. Deterministic code only _prepares_ the model's inputs.
-- **The model never does arithmetic.** Date math and reference checks are
-  precomputed into the data the model reads: "mandate_expiry=2026-06-03
-  (EXPIRED 8 days ago)", "parent=FGI-099X (NOT IN REGISTER)". The LLM spends
-  its judgment where judgment is needed. This single change took expired
-  mandate detection from unreliable to exact.
-- **Complex prompts are decomposed into single-purpose passes.** One prompt
-  doing existence-checking, value comparison and formatting at once was
-  unreliable on small open models. Split into focused passes, each is hard to
-  get wrong. This is how a free 17B model became dependable.
-- **Structured outputs everywhere.** Every LLM response is JSON validated
-  against a typed schema (with one repair retry), so malformed output cannot
-  reach the UI.
-- **Model fallback chain.** Each free Groq model has its own daily token
-  budget. When one is exhausted or returns invalid JSON, the client falls
-  through to the next, and finally to a local Ollama model with no token
-  limits. A review completes as long as any backend works, even offline.
-- **Caching.** Identical LLM calls are cached in SQLite, so re-running a
-  review on unchanged data is instant and free.
-- **Structured data stays structured.** The register is queried with SQL.
-  Only unstructured text (letters, notification notes) goes through hybrid
-  retrieval (BM25 + vectors, fused with reciprocal rank fusion), which powers
-  the Ask page and scales from 3 letters to 3,000 without redesign.
-- **SQLite + local files** because the whole thing must run on a laptop in
-  the interview; the same access layer would point at Postgres for a team.
-
-### Assumptions made (and held up for discussion)
-
-- Slash dates in `board_updates.json` are read as US-style MM/DD/YYYY. Every
-  slash date in the data is valid under that reading, several only that way.
-- "Today" is pinned to 2026-06-11 so expiry and overdue calculations are
-  reproducible against the dataset's timeline.
-- The fund operates in 18 jurisdictions per the brief. The register contains
-  a 19th value ("Noveria"), which the pipeline treats as a finding, not a fact.
-
----
 
 ## Running it locally
 
