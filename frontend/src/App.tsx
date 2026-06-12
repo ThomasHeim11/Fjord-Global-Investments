@@ -8,7 +8,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <header className="topbar">
-        <Link to="/" className="brand">FGI <span>·</span> Subsidiary Management</Link>
+        <Link to="/" className="brand">
+          <img src="/favicon.svg" alt="" className="brand-logo" />
+          FGI <span>·</span> Subsidiary Management
+        </Link>
         <nav>
           <NavLink to="/" end>Review</NavLink>
           <NavLink to="/entities">Register</NavLink>

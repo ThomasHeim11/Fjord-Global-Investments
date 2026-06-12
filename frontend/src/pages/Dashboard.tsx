@@ -83,29 +83,24 @@ export function Dashboard() {
               <>
                 <span className="review-bar-label">Last reviewed</span>
                 <span className="review-bar-value">{formatDate(run.created_at)}</span>
-                <span className="review-bar-dot" />
-                <span className="review-bar-value">{run.stats.total} issues found</span>
               </>
             ) : (
               <span className="review-bar-label">No review run yet</span>
             )}
           </div>
-          <button className="run-btn" onClick={runDigest} disabled={running}>
-            {running ? "Reviewing…" : run ? "Run review again" : "Run review"}
-          </button>
+          <div className="review-bar-action">
+            <button className="run-btn" onClick={runDigest} disabled={running}>
+              {running ? "Reviewing…" : run ? "Run review again" : "Run review"}
+            </button>
+            <p className="run-caption">
+              Each press re-reads your register, notifications and letters, ranks
+              every issue and recommends an action.
+            </p>
+          </div>
         </div>
       </div>
 
       <div className="page">
-        <p className="review-explainer">
-          <strong>Run review</strong> reads your register, board notifications and
-          agent letters, finds every governance issue, ranks each one
-          (Act now / Review soon / For awareness) and writes a recommended action.
-          Each press runs a fresh live scan; if the AI is momentarily
-          rate-limited it falls back to your last cached review, so you always
-          get a result.
-        </p>
-
         {notice && <div className="review-notice">{notice}</div>}
         {error && <div className="card error-card">{error}</div>}
 
@@ -132,18 +127,15 @@ export function Dashboard() {
           </div>
         )}
 
-        {run?.summary && (
-          <div className="summary-box">
-            <h2>Summary for the General Counsel</h2>
-            {run.summary.split(/\n+/).filter(Boolean).map((para, i) => (
-              <p key={i}>{para.replace(/^[-•*]\s*/, "")}</p>
-            ))}
-          </div>
-        )}
-
         {run && (
           <>
-            <div className="stat-hint">Click a card to filter the list</div>
+            <div className="review-headline">
+              <h2>{run.stats.total} issues found</h2>
+              <p>
+                across the register, board notifications and agent letters.
+                Click a card to filter the list below.
+              </p>
+            </div>
             <div className="stat-row">
               <button className={`card stat ${!severityFilter ? "active" : ""}`}
                       onClick={() => setSeverityFilter(null)}>
@@ -158,6 +150,15 @@ export function Dashboard() {
                 </button>
               ))}
             </div>
+
+            {run.summary && (
+              <div className="summary-box">
+                <h2>Summary</h2>
+                {run.summary.split(/\n+/).filter(Boolean).map((para, i) => (
+                  <p key={i}>{para.replace(/^[-•*]\s*/, "")}</p>
+                ))}
+              </div>
+            )}
 
             <div className="controls">
               <span className="controls-label">Filter by type</span>

@@ -35,7 +35,7 @@ export function EntityDetail() {
                 <Link to={`/entities/${entity.parent_entity_id}`}>{entity.parent_entity_id}</Link>
                 {entity.ownership_pct != null && ` (${entity.ownership_pct}%)`}
               </>
-            : "Top of structure (no parent company)"}</dd>
+            : "No parent company"}</dd>
           <dt>Registered address</dt><dd>{entity.registered_address}</dd>
           <dt>Registered agent</dt><dd>{entity.registered_agent}</dd>
           <dt>Board members</dt><dd>{entity.board_members}</dd>
