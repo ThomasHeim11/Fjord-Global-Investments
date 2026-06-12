@@ -28,11 +28,11 @@ export function Dashboard() {
   useEffect(() => { load(); }, []);
   useEffect(() => { setPage(1); }, [severityFilter, categoryFilter]);
 
-  const runDigest = async () => {
+  const runDigest = async (fresh = false) => {
     setRunning(true);
     setError(null);
     try {
-      await api.triggerDigest();
+      await api.triggerDigest(fresh);
       await load();
     } catch (e) {
       setError(String(e));
@@ -80,9 +80,19 @@ export function Dashboard() {
               <span className="review-bar-label">No review run yet</span>
             )}
           </div>
-          <button className="run-btn" onClick={runDigest} disabled={running}>
-            {running ? "Reviewing…" : run ? "Run review again" : "Run review"}
-          </button>
+          <div className="review-bar-actions">
+            <button className="run-btn" onClick={() => runDigest(false)} disabled={running}>
+              {running ? "Reviewing…" : run ? "Run review again" : "Run review"}
+            </button>
+            <button
+              className="run-live"
+              onClick={() => runDigest(true)}
+              disabled={running}
+              title="Ignore the cache and call the AI for real. Leaves the cached version untouched."
+            >
+              Run live
+            </button>
+          </div>
         </div>
       </div>
 

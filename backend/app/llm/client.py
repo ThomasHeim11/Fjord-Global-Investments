@@ -22,6 +22,9 @@ its native structured-output parser.
 import hashlib
 import json
 import os
+import re
+import time
+from contextvars import ContextVar
 
 from pydantic import BaseModel, ValidationError
 
@@ -29,7 +32,10 @@ from ..config import (
     ANTHROPIC_MODEL,
     GROQ_API_KEY,
     GROQ_FALLBACK_MODELS,
+    GROQ_MAX_BACKOFF,
+    GROQ_MIN_INTERVAL,
     GROQ_MODEL,
+    GROQ_RETRY_ROUNDS,
     LLM_PROVIDER,
     OLLAMA_BASE_URL,
     OLLAMA_MODEL,
@@ -40,6 +46,15 @@ from ..db import get_conn
 _groq = None
 _ollama = None
 _anthropic = None
+
+# When set, parse_structured ignores the cache for both read and write: it
+# forces real LLM calls (so a run can be demonstrated live) WITHOUT overwriting
+# the existing cached responses, so the polished cached version stays intact.
+_bypass_cache: ContextVar[bool] = ContextVar("llm_bypass_cache", default=False)
+
+
+def set_bypass_cache(value: bool) -> None:
+    _bypass_cache.set(value)
 
 
 class LLMNotConfigured(RuntimeError):
@@ -95,6 +110,41 @@ def _cache_key(model: str, system: str, prompt: str, schema_name: str) -> str:
 def _is_rate_limit(exc: Exception) -> bool:
     name = type(exc).__name__
     return "RateLimit" in name or "429" in str(exc) or "rate_limit" in str(exc).lower()
+
+
+def _retry_after_seconds(exc: Exception) -> float:
+    """How long Groq asks us to wait before retrying. Groq puts this in a
+    Retry-After header and in the error text ("try again in 6.5s"). Returns 0
+    if nothing parseable is found."""
+    resp = getattr(exc, "response", None)
+    if resp is not None:
+        hdr = getattr(resp, "headers", None)
+        if hdr:
+            val = hdr.get("retry-after") or hdr.get("Retry-After")
+            try:
+                if val is not None:
+                    return float(val)
+            except (TypeError, ValueError):
+                pass
+    m = re.search(r"try again in ([0-9.]+)\s*s", str(exc), re.IGNORECASE)
+    if m:
+        return float(m.group(1))
+    return 0.0
+
+
+_last_groq_call = 0.0
+
+
+def _throttle_groq() -> None:
+    """Keep a minimum spacing between Groq calls so a review doesn't fire a
+    burst that trips the per-minute limit on every model at once."""
+    global _last_groq_call
+    if GROQ_MIN_INTERVAL <= 0:
+        return
+    wait = GROQ_MIN_INTERVAL - (time.monotonic() - _last_groq_call)
+    if wait > 0:
+        time.sleep(wait)
+    _last_groq_call = time.monotonic()
 
 
 def _is_recoverable(exc: Exception) -> bool:
@@ -153,28 +203,48 @@ def _model_chain(primary: str) -> list[str]:
 
 def _call_groq(system, prompt, output_model, max_tokens, primary_model) -> BaseModel:
     """Try the Groq model chain, falling through whenever a model can't do the
-    job (out of quota, or won't produce valid JSON)."""
+    job (out of quota, or won't produce valid JSON). When the WHOLE chain is
+    momentarily rate-limited (the per-minute limit, not the daily budget), wait
+    the time Groq suggests and retry the chain rather than giving up."""
     client = _groq_client()
+    chain = _model_chain(primary_model)
     last_exc: Exception | None = None
-    only_rate_limits = True
-    for model in _model_chain(primary_model):
-        try:
-            result = _chat_json(client, model, system, prompt, output_model, max_tokens)
-            print(f"[llm] groq:{model} ✓", flush=True)
-            return result
-        except Exception as exc:  # noqa: BLE001
-            if _is_recoverable(exc):
-                reason = "rate-limited" if _is_rate_limit(exc) else "bad JSON"
-                print(f"[llm] groq:{model} {reason} → next", flush=True)
-                last_exc = exc
-                if not _is_rate_limit(exc):
-                    only_rate_limits = False
-                continue
-            raise
-    if only_rate_limits:
+
+    for round_i in range(max(1, GROQ_RETRY_ROUNDS)):
+        had_rate_limit = False
+        had_bad_json = False
+        suggested_wait = 0.0
+        for model in chain:
+            try:
+                _throttle_groq()
+                result = _chat_json(client, model, system, prompt, output_model, max_tokens)
+                print(f"[llm] groq:{model} ✓", flush=True)
+                return result
+            except Exception as exc:  # noqa: BLE001
+                if _is_recoverable(exc):
+                    last_exc = exc
+                    if _is_rate_limit(exc):
+                        had_rate_limit = True
+                        suggested_wait = max(suggested_wait, _retry_after_seconds(exc))
+                        print(f"[llm] groq:{model} rate-limited → next", flush=True)
+                    else:
+                        had_bad_json = True
+                        print(f"[llm] groq:{model} bad JSON → next", flush=True)
+                    continue
+                raise
+        # No model succeeded this round. If it was purely a per-minute rate
+        # limit, wait and retry the chain; the budget refills continuously.
+        if had_rate_limit and round_i < GROQ_RETRY_ROUNDS - 1:
+            wait = min(max(suggested_wait, 2.0), GROQ_MAX_BACKOFF)
+            print(f"[llm] whole chain rate-limited, waiting {wait:.1f}s then retrying…", flush=True)
+            time.sleep(wait)
+            continue
+        break
+
+    if had_rate_limit and not had_bad_json:
         raise LLMQuotaExhausted(
-            "All free models have reached their daily limit. Please try again later "
-            "(the Groq free-tier budget refills on a rolling 24h window)."
+            "Every free model is rate-limited right now. Wait a moment and try again "
+            "(the Groq free-tier limit refills continuously)."
         ) from last_exc
     raise RuntimeError(f"No free Groq model could complete this step. Last error: {last_exc}") from last_exc
 
@@ -212,13 +282,15 @@ def parse_structured(system: str, prompt: str, output_model: type[BaseModel],
     else:
         effective_model = ANTHROPIC_MODEL
 
+    bypass = _bypass_cache.get()
     key = _cache_key(effective_model, system, prompt, output_model.__name__)
-    with get_conn() as conn:
-        row = conn.execute(
-            "SELECT response FROM llm_cache WHERE cache_key = ?", (key,)
-        ).fetchone()
-    if row:
-        return output_model.model_validate_json(row["response"])
+    if not bypass:
+        with get_conn() as conn:
+            row = conn.execute(
+                "SELECT response FROM llm_cache WHERE cache_key = ?", (key,)
+            ).fetchone()
+        if row:
+            return output_model.model_validate_json(row["response"])
 
     if LLM_PROVIDER == "ollama":
         result = _call_ollama(system, prompt, output_model, max_tokens)
@@ -238,9 +310,12 @@ def parse_structured(system: str, prompt: str, output_model: type[BaseModel],
     else:
         result = _call_anthropic(system, prompt, output_model, max_tokens)
 
-    with get_conn() as conn:
-        conn.execute(
-            "INSERT OR REPLACE INTO llm_cache (cache_key, response) VALUES (?, ?)",
-            (key, result.model_dump_json()),
-        )
+    # In bypass mode we deliberately do NOT write: a live demo run must leave
+    # the existing cached responses untouched.
+    if not bypass:
+        with get_conn() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO llm_cache (cache_key, response) VALUES (?, ?)",
+                (key, result.model_dump_json()),
+            )
     return result

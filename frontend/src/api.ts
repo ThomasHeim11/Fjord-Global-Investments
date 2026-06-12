@@ -9,8 +9,10 @@ async function get<T>(path: string): Promise<T> {
 }
 
 export const api = {
-  triggerDigest: async (): Promise<unknown> => {
-    const res = await fetch(`${BASE}/digest`, { method: "POST" });
+  // fresh=true forces real LLM calls (ignores the cache) for a live demo,
+  // without overwriting the cached responses.
+  triggerDigest: async (fresh = false): Promise<unknown> => {
+    const res = await fetch(`${BASE}/digest${fresh ? "?fresh=true" : ""}`, { method: "POST" });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
       throw new Error(body?.detail ?? `Review failed (${res.status})`);

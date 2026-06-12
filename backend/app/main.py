@@ -43,8 +43,12 @@ app.add_middleware(
 # --- Digest -----------------------------------------------------------------
 
 @app.post("/api/digest")
-def trigger_digest() -> dict:
-    from .llm.client import LLMNotConfigured, LLMQuotaExhausted
+def trigger_digest(fresh: bool = False) -> dict:
+    """Run the review. fresh=true forces real LLM calls (ignores the cache) so
+    the pipeline can be demonstrated working live; it leaves the existing cached
+    responses untouched, so a normal run still reproduces instantly afterwards."""
+    from .llm.client import LLMNotConfigured, LLMQuotaExhausted, set_bypass_cache
+    set_bypass_cache(fresh)
     try:
         return run_digest()
     except LLMNotConfigured as exc:
@@ -53,6 +57,8 @@ def trigger_digest() -> dict:
         raise HTTPException(429, str(exc))
     except Exception as exc:  # surface cleanly (with CORS) instead of a bare 500
         raise HTTPException(502, f"Review failed: {str(exc)[:200]}")
+    finally:
+        set_bypass_cache(False)
 
 
 @app.delete("/api/digest")

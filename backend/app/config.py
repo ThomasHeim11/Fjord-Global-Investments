@@ -51,6 +51,15 @@ GROQ_MODEL = os.environ.get("GROQ_MODEL", GROQ_FALLBACK_MODELS[0])
 # still falls through the chain if rate-limited.
 GROQ_REASONING_MODEL = os.environ.get("GROQ_REASONING_MODEL", "openai/gpt-oss-120b")
 
+# Burst control for the free tier. The daily token budget is rarely the
+# problem; the per-minute request/token limit is. Pace calls so a review
+# doesn't fire a burst that trips every model at once, and when the whole
+# chain IS momentarily limited, wait the suggested time and retry instead of
+# giving up.
+GROQ_MIN_INTERVAL = float(os.environ.get("GROQ_MIN_INTERVAL", "2.1"))   # seconds between calls
+GROQ_RETRY_ROUNDS = int(os.environ.get("GROQ_RETRY_ROUNDS", "4"))       # chain passes before giving up
+GROQ_MAX_BACKOFF = float(os.environ.get("GROQ_MAX_BACKOFF", "30"))      # cap on a single wait
+
 # Ollama — a local, OpenAI-compatible model server. No token limits, fully
 # offline. Used as the unlimited final fallback after the Groq chain, or as
 # the sole provider when LLM_PROVIDER=ollama. Set OLLAMA_MODEL to your exact

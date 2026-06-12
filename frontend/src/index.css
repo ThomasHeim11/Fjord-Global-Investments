@@ -145,6 +145,17 @@ a:hover { color: var(--red); }
 .run-btn:active { transform: translateY(0); }
 .run-btn:disabled { background: var(--ink-muted); cursor: wait; box-shadow: none; transform: none; }
 
+/* the two run actions sit together; "Run live" is a quiet secondary */
+.review-bar-actions { display: inline-flex; align-items: center; gap: 12px; }
+.run-live {
+  background: none; border: none; padding: 6px 4px;
+  color: var(--ink-muted); font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; text-decoration: underline; text-underline-offset: 3px;
+  transition: color .12s;
+}
+.run-live:hover { color: var(--accent); }
+.run-live:disabled { color: var(--line); cursor: wait; text-decoration: none; }
+
 /* NBIM-style hero banner — full-bleed photo + headline number overlay */
 .hero-banner {
   width: 100%;
