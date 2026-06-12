@@ -16,8 +16,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from .analysis.digest import run_digest
+from .config import LETTERS_DIR
 from .db import get_conn, init_db
 from .ingest import run_ingest
 
@@ -199,6 +201,25 @@ def delete_chat(conversation_id: str) -> dict:
     from . import chat_store
     chat_store.delete_conversation(conversation_id)
     return {"deleted": True}
+
+
+# --- Source documents -------------------------------------------------------
+
+@app.get("/api/letters/{filename}")
+def letter_pdf(filename: str) -> FileResponse:
+    """Serve an agent letter PDF so a finding can link straight to its source.
+    The frontend appends '#search=<quoted value>' so the browser viewer
+    highlights the exact line the finding is based on."""
+    # Guard against path traversal: only a bare filename inside LETTERS_DIR.
+    if "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(400, "Invalid filename")
+    path = (LETTERS_DIR / filename).resolve()
+    if path.parent != LETTERS_DIR.resolve() or not path.is_file():
+        raise HTTPException(404, "Letter not found")
+    # 'inline' so the browser renders it in its PDF viewer (and applies the
+    # #search highlight) instead of downloading it.
+    return FileResponse(path, media_type="application/pdf",
+                        filename=filename, content_disposition_type="inline")
 
 
 # --- Search -----------------------------------------------------------------

@@ -19,9 +19,9 @@ from .client import parse_structured
 
 SYSTEM = f"""You are the assistant for Fjord Global Investments' Subsidiary & Corporate
 Management team. Answer questions about the fund's ~100 subsidiaries using ONLY
-the provided context: the subsidiary register, retrieved document excerpts
-(agent letters, board-change notifications), and the latest digest findings.
-Today's date is {REFERENCE_DATE}.
+the provided context: the subsidiary register, the agent letters and
+board-change notifications (both in full), retrieved document excerpts, and the
+latest digest findings. Today's date is {REFERENCE_DATE}.
 
 Rules:
 - Ground every claim in the context; never invent entities, dates, values or
@@ -146,6 +146,27 @@ def _letters_context() -> str:
     )
 
 
+def _board_updates_context() -> str:
+    """Every board-change notification, in full. There are only ~35 and each is
+    one line, so we always include all of them (same reasoning as the letters)
+    rather than hoping retrieval surfaces the relevant ones. Each line shows the
+    raw name and the register entity it resolved to (or NO MATCH)."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT date_iso, date_raw, entity_name_raw, change_type, details, "
+            "       source, resolved_entity_id "
+            "FROM board_updates ORDER BY id"
+        ).fetchall()
+    if not rows:
+        return "(no board-change notifications)"
+    return "\n".join(
+        f"{r['date_iso'] or r['date_raw']} | {r['entity_name_raw']} -> "
+        f"{r['resolved_entity_id'] or 'NO MATCH IN REGISTER'} | "
+        f"{r['change_type']} | {r['details']} (via {r['source']})"
+        for r in rows
+    )
+
+
 def ask(question: str, history: list[dict] | None = None) -> dict:
     retrieved = search(question, k=8)
     chunks_text = "\n\n".join(
@@ -168,6 +189,9 @@ Answer the question above using only the context below. Cite the sources you use
 
 === AGENT LETTERS (every letter, in full) ===
 {_letters_context()}
+
+=== BOARD-CHANGE NOTIFICATIONS (every notification, in full) ===
+{_board_updates_context()}
 
 === RETRIEVED DOCUMENT EXCERPTS (hybrid BM25 + vector search over letters and notifications) ===
 {chunks_text}

@@ -145,8 +145,9 @@ export function Ask() {
               Portfolio<span>GPT</span>
             </h1>
             <p className="pgpt-sub">
-              Ask across the register and the agent letters. Every answer reads the
-              source text and cites where it came from.
+              Ask across the register, the agent letters and the board
+              notifications. Every answer reads the source text and cites where
+              it came from.
             </p>
           </div>
         </div>
@@ -215,8 +216,8 @@ export function Ask() {
             </button>
           </form>
           <p className="pgpt-disclaimer">
-            PortfolioGPT only reads your register and the agent letters. Verify
-            anything material against the cited source.
+            PortfolioGPT only reads your register, the agent letters and the
+            board notifications. Verify anything material against the cited source.
           </p>
         </div>
       </div>

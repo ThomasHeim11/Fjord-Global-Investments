@@ -10,7 +10,7 @@ export default function App() {
       <header className="topbar">
         <Link to="/" className="brand">
           <img src="/favicon.svg" alt="" className="brand-logo" />
-          FGI <span>·</span> Subsidiary Management
+          Fjord Global Investments
         </Link>
         <nav>
           <NavLink to="/" end>Review</NavLink>

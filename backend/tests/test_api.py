@@ -107,6 +107,23 @@ def test_get_missing_conversation_404(client):
     assert client.get("/api/chats/nope").status_code == 404
 
 
+def test_letter_pdf_served_inline(client):
+    # the real agent letters ship in data/letters/
+    res = client.get("/api/letters/luxembourg_mandate_warning.pdf")
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "application/pdf"
+    # 'inline' so the browser opens it in its viewer rather than downloading
+    assert "inline" in res.headers.get("content-disposition", "")
+
+
+def test_letter_pdf_missing_is_404(client):
+    assert client.get("/api/letters/does_not_exist.pdf").status_code == 404
+
+
+def test_letter_pdf_rejects_path_traversal(client):
+    assert client.get("/api/letters/secret..pdf").status_code == 400
+
+
 def test_digest_endpoint_returns_run(client, monkeypatch):
     import app.main as main_module
 

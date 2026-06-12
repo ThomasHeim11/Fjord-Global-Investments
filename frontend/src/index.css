@@ -739,6 +739,98 @@ h1 {
   margin-bottom: 6px;
   font-weight: 700;
 }
+.evidence-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  color: var(--accent);
+  text-transform: none;
+  letter-spacing: 0;
+  border-bottom: 1px solid transparent;
+}
+.evidence-link:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* in-app PDF viewer (the actual letter, highlighted) */
+.pdf-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 21, 56, 0.55);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px;
+  overflow: auto;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.pdf-modal {
+  background: var(--surface);
+  border-radius: 14px;
+  overflow: hidden;
+  max-width: 760px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 21, 56, 0.35);
+}
+.pdf-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--sky);
+}
+.pdf-modal-title {
+  font-weight: 700;
+  color: var(--midnight);
+  font-size: 14px;
+}
+.pdf-modal-hint {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.pdf-modal-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--ink-muted);
+  padding: 4px 9px;
+  border-radius: 6px;
+}
+.pdf-modal-close:hover {
+  color: var(--midnight);
+  background: var(--sky-pressed);
+}
+.pdf-modal-body {
+  max-height: 78vh;
+  overflow: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg);
+}
+.pdf-status {
+  padding: 48px;
+  color: var(--ink-muted);
+}
+.react-pdf__Page {
+  box-shadow: 0 2px 12px rgba(0, 21, 56, 0.12);
+}
+/* highlight the matched line within the PDF's transparent text layer */
+.react-pdf__Page__textContent mark,
+.textLayer mark {
+  background: rgba(255, 221, 0, 0.55);
+  color: transparent;
+  border-radius: 2px;
+}
 .compare-val {
   font-size: 14.5px;
   color: var(--ink);
