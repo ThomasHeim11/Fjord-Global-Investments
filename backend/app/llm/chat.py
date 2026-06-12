@@ -48,8 +48,13 @@ Rules:
   it is not in the register.
 - Match the answer's shape to the question:
   * "Which entities ..." -> one entity per line: "Name (ID): the reason in a few words."
-  * "Summarise the letters / what is each agent asking ..." -> one line per
-    letter: the agent or jurisdiction, what they want, and any deadline.
+  * "Summarise the letters / what is each agent asking ..." -> cover EVERY
+    letter in the AGENT LETTERS section, one per letter (do not omit any): the
+    agent or jurisdiction, what they want, and the deadline. Treat a stated
+    expiry/due date, "without delay", or "by return" AS the deadline - do not
+    say "no deadline" when the letter gives a date or urgency. The Luxembourg
+    letter, for example, lists specific mandate-expiry dates: those ARE the
+    deadlines, so include them as such.
   * "Which jurisdictions ..." or any roll-up -> group by that dimension with a
     count and the entities under each, not a flat entity list.
   Never force a per-entity list onto a question that asks for a summary or a
@@ -124,6 +129,23 @@ def _findings_context() -> str:
     )
 
 
+def _letters_context() -> str:
+    """Every agent letter, in full. There are only a few and they are short, so
+    we always include all of them rather than trusting retrieval to rank each
+    one in — that is what stops a "summarise the letters" answer from silently
+    dropping a letter. (At thousands of letters this would become retrieval.)"""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT filename, full_text FROM documents "
+            "WHERE source_type = 'letter' ORDER BY filename"
+        ).fetchall()
+    if not rows:
+        return "(no agent letters)"
+    return "\n\n".join(
+        f"[letter: {r['filename']}]\n{(r['full_text'] or '').strip()}" for r in rows
+    )
+
+
 def ask(question: str, history: list[dict] | None = None) -> dict:
     retrieved = search(question, k=8)
     chunks_text = "\n\n".join(
@@ -144,7 +166,10 @@ Answer the question above using only the context below. Cite the sources you use
 === SUBSIDIARY REGISTER ===
 {_register_context()}
 
-=== RETRIEVED DOCUMENT EXCERPTS (hybrid BM25 + vector search) ===
+=== AGENT LETTERS (every letter, in full) ===
+{_letters_context()}
+
+=== RETRIEVED DOCUMENT EXCERPTS (hybrid BM25 + vector search over letters and notifications) ===
 {chunks_text}
 
 === LATEST DIGEST FINDINGS ===

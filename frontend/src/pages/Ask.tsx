@@ -1,15 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import {
-  loadChats,
-  newId,
-  saveChats,
-  titleFrom,
-  type ChatMessage,
-  type Conversation,
-  type Source,
-} from "../chatStore";
-
-const BASE = "http://127.0.0.1:8000/api";
+import { api } from "../api";
+import type { ChatMessage, ChatSummary, Source } from "../chatStore";
 
 // Questions Review and Register can't answer at a glance: summarising the
 // letters, combining fields, and rolling up the portfolio. This is where the
@@ -34,20 +25,21 @@ const SUGGESTIONS = [
 ];
 
 export function Ask() {
-  const [chats, setChats] = useState<Conversation[]>(loadChats);
-  const [activeId, setActiveId] = useState<string | null>(() => loadChats()[0]?.id ?? null);
+  const [chats, setChats] = useState<ChatSummary[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
-  const active = chats.find((c) => c.id === activeId) ?? null;
-  const messages = active?.messages ?? [];
   const empty = messages.length === 0;
 
-  // persist on every change
-  useEffect(() => { saveChats(chats); }, [chats]);
+  const refreshList = () => api.listChats().then(setChats).catch(() => {});
+
+  // load the conversation list once
+  useEffect(() => { refreshList(); }, []);
 
   // grow the composer with its content, up to a cap
   useEffect(() => {
@@ -57,80 +49,58 @@ export function Ask() {
     ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
   }, [input]);
 
-  // scroll to the latest message when the active thread changes
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "auto" });
-  }, [activeId, messages.length]);
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 30);
+  }, [messages.length]);
 
-  const send = async (question: string) => {
-    if (!question.trim() || busy) return;
-    const isNew = !active;
-    let id = activeId;
-    const userMsg: ChatMessage = { role: "user", content: question };
-    const prior = active?.messages ?? [];
-
-    if (isNew) {
-      id = newId();
-      const conv: Conversation = {
-        id,
-        title: titleFrom(question),
-        messages: [userMsg],
-        updatedAt: Date.now(),
-      };
-      setChats((prev) => [conv, ...prev]);
-      setActiveId(id);
-    } else {
-      setChats((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, messages: [...c.messages, userMsg], updatedAt: Date.now() } : c)),
-      );
-    }
-
-    setInput("");
-    setBusy(true);
+  const openChat = async (id: string) => {
+    if (id === activeId) return;
+    setActiveId(id);
     setError(null);
-
-    const history = prior.map((m) => ({ role: m.role, content: m.content }));
+    setMessages([]);
     try {
-      const res = await fetch(`${BASE}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, history }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.detail ?? `${res.status} ${res.statusText}`);
-      }
-      const data = await res.json();
-      const aMsg: ChatMessage = { role: "assistant", content: data.answer, sources: data.sources };
-      setChats((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, messages: [...c.messages, aMsg], updatedAt: Date.now() } : c)),
-      );
+      const conv = await api.getChat(id);
+      setMessages(conv.messages);
     } catch (e) {
       setError(String(e));
-      // roll back the unanswered question; drop the conversation if it was new
-      if (isNew) {
-        setChats((prev) => prev.filter((c) => c.id !== id));
-        setActiveId(null);
-      } else {
-        setChats((prev) =>
-          prev.map((c) => (c.id === id ? { ...c, messages: c.messages.slice(0, -1) } : c)),
-        );
-      }
-    } finally {
-      setBusy(false);
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
     }
   };
 
   const newChat = () => {
     setActiveId(null);
+    setMessages([]);
     setError(null);
     setInput("");
   };
 
-  const deleteChat = (cid: string) => {
-    setChats((prev) => prev.filter((c) => c.id !== cid));
-    if (activeId === cid) setActiveId(null);
+  const deleteChat = async (id: string) => {
+    try {
+      await api.deleteChat(id);
+    } catch {
+      /* ignore — refresh will reflect the truth */
+    }
+    if (id === activeId) newChat();
+    refreshList();
+  };
+
+  const send = async (question: string) => {
+    if (!question.trim() || busy) return;
+    const userMsg: ChatMessage = { role: "user", content: question };
+    setMessages((m) => [...m, userMsg]);
+    setInput("");
+    setBusy(true);
+    setError(null);
+    try {
+      const reply = await api.sendChat(question, activeId);
+      setMessages((m) => [...m, { role: "assistant", content: reply.answer, sources: reply.sources }]);
+      if (reply.conversation_id !== activeId) setActiveId(reply.conversation_id);
+      refreshList(); // titles / ordering live on the server
+    } catch (e) {
+      setError(String(e));
+      setMessages((m) => m.slice(0, -1)); // roll back the unanswered question
+    } finally {
+      setBusy(false);
+    }
   };
 
   // One compact, de-duplicated provenance line — the answer text already
@@ -165,7 +135,7 @@ export function Ask() {
             <div
               key={c.id}
               className={`pgpt-history-item ${c.id === activeId ? "active" : ""}`}
-              onClick={() => setActiveId(c.id)}
+              onClick={() => openChat(c.id)}
             >
               <span className="pgpt-history-title">{c.title}</span>
               <button

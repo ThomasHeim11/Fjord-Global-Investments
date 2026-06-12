@@ -95,6 +95,26 @@ CREATE TABLE IF NOT EXISTS findings (
     recommendation TEXT,            -- LLM-generated action
     detected_by    TEXT             -- 'rule:<name>' | 'llm:reconciliation' | 'llm:resolution'
 );
+
+-- PortfolioGPT chat history, persisted server-side so conversations survive a
+-- page reload and are ready to scope per-user once auth exists.
+CREATE TABLE IF NOT EXISTS chat_conversations (
+    id         TEXT PRIMARY KEY,    -- server-generated uuid hex
+    title      TEXT,                -- first question, truncated
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id TEXT REFERENCES chat_conversations(id) ON DELETE CASCADE,
+    role            TEXT,            -- 'user' | 'assistant'
+    content         TEXT,
+    sources_json    TEXT,            -- assistant only: JSON array of cited sources
+    created_at      TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_conv ON chat_messages(conversation_id, id);
 """
 
 

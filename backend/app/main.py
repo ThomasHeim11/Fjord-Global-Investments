@@ -158,15 +158,21 @@ from pydantic import BaseModel
 
 class ChatRequest(BaseModel):
     question: str
-    history: list[dict] = []
+    conversation_id: str | None = None
 
 
 @app.post("/api/chat")
 def chat(req: ChatRequest) -> dict:
+    """Answer a question and persist the turn. History is rebuilt from the
+    stored conversation, so the client only sends the question and (for a
+    follow-up) the conversation id. The turn is saved only on success."""
+    from . import chat_store
     from .llm.chat import ask
     from .llm.client import LLMNotConfigured, LLMQuotaExhausted
+
+    history = chat_store.get_messages(req.conversation_id) if req.conversation_id else []
     try:
-        return ask(req.question, req.history)
+        result = ask(req.question, [{"role": m["role"], "content": m["content"]} for m in history])
     except LLMNotConfigured as exc:
         raise HTTPException(503, str(exc))
     except LLMQuotaExhausted:
@@ -175,6 +181,33 @@ def chat(req: ChatRequest) -> dict:
             "again in a few minutes — the browsing and review pages still work.")
     except Exception as exc:
         raise HTTPException(502, f"Chat failed: {str(exc)[:200]}")
+
+    cid = chat_store.ensure_conversation(req.conversation_id, req.question)
+    chat_store.add_message(cid, "user", req.question)
+    chat_store.add_message(cid, "assistant", result["answer"], result.get("sources"))
+    return {"conversation_id": cid, "answer": result["answer"], "sources": result["sources"]}
+
+
+@app.get("/api/chats")
+def list_chats() -> list[dict]:
+    from . import chat_store
+    return chat_store.list_conversations()
+
+
+@app.get("/api/chats/{conversation_id}")
+def get_chat(conversation_id: str) -> dict:
+    from . import chat_store
+    conv = chat_store.get_conversation(conversation_id)
+    if not conv:
+        raise HTTPException(404, "Conversation not found")
+    return conv
+
+
+@app.delete("/api/chats/{conversation_id}")
+def delete_chat(conversation_id: str) -> dict:
+    from . import chat_store
+    chat_store.delete_conversation(conversation_id)
+    return {"deleted": True}
 
 
 # --- Search -----------------------------------------------------------------
