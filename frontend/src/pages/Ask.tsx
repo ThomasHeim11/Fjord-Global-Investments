@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { api } from "../api";
-import type { ChatMessage, ChatSummary, Source } from "../chatStore";
+import type { ChatMessage, ChatSummary } from "../chatStore";
+import { sourceSummary } from "../format";
 
 // Questions Review and Register can't answer at a glance: summarising the
 // letters, combining fields, and rolling up the portfolio. This is where the
@@ -101,19 +102,6 @@ export function Ask() {
     } finally {
       setBusy(false);
     }
-  };
-
-  // One compact, de-duplicated provenance line — the answer text already
-  // names the entities, so sources only say WHERE the information came from.
-  const sourceSummary = (sources: Source[]): string => {
-    const parts = new Set<string>();
-    for (const s of sources) {
-      if (s.kind === "register") parts.add("the register");
-      else if (s.kind === "letter") parts.add(s.ref.replace(/^letter:/i, ""));
-      else if (s.kind === "board_update") parts.add("board notifications");
-      else parts.add("review findings");
-    }
-    return [...parts].join(" · ");
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {

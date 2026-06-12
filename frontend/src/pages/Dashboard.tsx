@@ -2,19 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { FindingCard } from "../components/FindingCard";
 import { Hero } from "../components/Hero";
+import { formatDate } from "../format";
 import { CATEGORY_LABELS, SEVERITY_LABELS } from "../labels";
 import type { DigestResponse, Severity } from "../types";
 
 const SEVERITIES: Severity[] = ["critical", "warning", "info"];
 const PAGE_SIZE = 12;
-
-// "2026-06-11 13:50:52" → "11 Jun 2026"
-function formatDate(raw: string): string {
-  const d = new Date(raw.replace(" ", "T") + "Z");
-  return isNaN(d.getTime())
-    ? raw.slice(0, 10)
-    : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
 
 export function Dashboard() {
   const [digest, setDigest] = useState<DigestResponse | null>(null);

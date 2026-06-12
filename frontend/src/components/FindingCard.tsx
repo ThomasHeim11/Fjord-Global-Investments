@@ -1,16 +1,7 @@
 import { Link } from "react-router-dom";
+import { cleanTitle } from "../format";
 import { CATEGORY_LABELS, SEVERITY_LABELS, SOURCE_LABELS } from "../labels";
 import type { Finding } from "../types";
-
-// Tidy LLM-written titles for display: drop the "letter says X, register
-// says Y" tail (the comparison box shows it better), "(N/A)" placeholders,
-// and the entity ID when the badge already shows it.
-function cleanTitle(raw: string, entityId: string | null): string {
-  let t = raw.split("—")[0];
-  t = t.replace(/:?\s*\(N\/A\)/gi, "");
-  if (entityId) t = t.replace(`(${entityId})`, "");
-  return t.replace(/\s+/g, " ").trim().replace(/[:\-–—·,]\s*$/, "");
-}
 
 export function FindingCard({ finding }: { finding: Finding }) {
   const ev = finding.evidence ?? {};
