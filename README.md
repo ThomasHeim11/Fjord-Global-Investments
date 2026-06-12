@@ -94,7 +94,7 @@ Optional: [Ollama](https://ollama.com) running locally for the unlimited offline
 ```bash
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r ../requirements.txt   # single requirements file at the repo root
 cp .env.example .env          # paste your GROQ_API_KEY into .env
 uvicorn app.main:app --port 8000
 ```
