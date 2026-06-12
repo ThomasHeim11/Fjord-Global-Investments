@@ -1,10 +1,12 @@
 import type { Severity } from "./types";
 
-// Plain language for non-technical (legal / tax) users — no dev jargon.
+// Risk level — the standard High/Medium/Low scale legal, tax and compliance
+// teams use on risk registers and audit findings. Conveys severity; the
+// per-finding "What to do" carries the action.
 export const SEVERITY_LABELS: Record<Severity, string> = {
-  critical: "Act now",
-  warning: "Review soon",
-  info: "For awareness",
+  critical: "High",
+  warning: "Medium",
+  info: "Low",
 };
 
 export const CATEGORY_LABELS: Record<string, string> = {

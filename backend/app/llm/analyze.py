@@ -134,7 +134,15 @@ def _annotate(r, valid_ids: set[str], today) -> str:
     expiry = r["board_mandate_expiry"]
     try:
         days = (date.fromisoformat(expiry) - today).days
-        mandate = f"{expiry} ({'EXPIRED ' + str(-days) + ' days ago' if days < 0 else 'in ' + str(days) + ' days'})"
+        # Only highlight mandates that are expired or within the 60-day window
+        # the rubric cares about. A bare date for anything further out so the
+        # annotation doesn't tempt the model to flag a healthy far-future mandate.
+        if days < 0:
+            mandate = f"{expiry} (EXPIRED {-days} days ago)"
+        elif days <= 60:
+            mandate = f"{expiry} (expiring in {days} days)"
+        else:
+            mandate = str(expiry)
     except (TypeError, ValueError):
         mandate = str(expiry)
 

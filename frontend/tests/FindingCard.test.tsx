@@ -32,7 +32,7 @@ function renderCard(finding: Finding) {
 describe("FindingCard", () => {
   it("shows the plain-language severity and category labels", () => {
     renderCard(makeFinding());
-    expect(screen.getByText("Act now")).toBeInTheDocument();
+    expect(screen.getByText("High")).toBeInTheDocument();
     expect(screen.getByText("Board mandate")).toBeInTheDocument();
   });
 

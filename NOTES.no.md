@@ -4,7 +4,7 @@
 
 **Review** er kjernen i verktøyet. Ett klikk, og KI-en leser alle tre
 datakildene og lister opp hver governance-risiko den finner, hver rangert
-som Act now / Review soon / For awareness, med en enkel forklaring og et
+etter risikonivå (High / Medium / Low), med en enkel forklaring og et
 anbefalt tiltak. Der to kilder er uenige, vises begge side om side: "Ifølge
 agentbrevet: 2026-06-19. Ifølge registeret vårt: 2028-01-10."
 

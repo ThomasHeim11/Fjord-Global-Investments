@@ -42,29 +42,52 @@ def _unresolved_update_findings() -> list[Finding]:
     ]
 
 
+def _norm(s: str | None) -> str:
+    return " ".join((s or "").lower().split())
+
+
+def _title_subject(title: str) -> str:
+    """The part after the last colon is usually the entity/jurisdiction a
+    finding is about: "Invalid jurisdiction: Noveria" -> "noveria"."""
+    subj = title.rsplit(":", 1)[-1] if ":" in title else title
+    return _norm(subj)[:60]
+
+
 def _dedup(findings: list[Finding]) -> list[Finding]:
     """Collapse the same issue surfaced by more than one pass.
 
-    A finding is a duplicate of an earlier one when they share a category AND
-    refer to the same entity — matched by register ID, by entity name, or (for
-    findings carrying neither, e.g. a jurisdiction note) by normalized title.
-    Distinct issues for one entity survive because the category differs, and a
-    genuinely multi-field conflict (e.g. a letter disagreeing on both mandate
-    date and board) survives because each carries a distinct title.
+    Two findings are duplicates when they share a category AND concern the same
+    subject. The subject is the register ID where known; a finding that names an
+    entity without its ID is mapped onto that ID, and one carrying neither (e.g.
+    a bare jurisdiction note) falls back to the subject in its title. This is
+    what merges e.g. three differently-worded "Noveria" findings, or a
+    "Duplicate registration" and a "Duplicate entity name" for one entity, into
+    one. A genuine multi-field conflict survives because 'conflict' findings
+    also key on the title.
     """
+    # Any entity name seen alongside an ID, so a finding that names the same
+    # entity but lacks the ID still collapses onto it.
+    name_to_id = {_norm(f.entity_name): f.entity_id
+                  for f in findings if f.entity_id and f.entity_name}
+
+    def subject(f: Finding) -> str:
+        if f.entity_id:
+            return f"id:{f.entity_id}"
+        name = _norm(f.entity_name)
+        if name:
+            return f"id:{name_to_id[name]}" if name in name_to_id else f"name:{name}"
+        subj = _title_subject(f.title)
+        return f"id:{name_to_id[subj]}" if subj in name_to_id else f"subj:{subj}"
+
     seen: set[tuple] = set()
     out: list[Finding] = []
     for f in findings:
-        ident = (
-            f"id:{f.entity_id}" if f.entity_id
-            else f"name:{(f.entity_name or '').lower().strip()}" if f.entity_name
-            else f"title:{' '.join(f.title.lower().split())[:60]}"
-        )
+        sid = subject(f)
         # 'conflict' findings include the title in the key, so a letter that
         # disagrees with the register on two fields keeps both findings; for
         # every other category it's one finding per (entity, category).
-        key = ((f.category, ident, " ".join(f.title.lower().split())[:60])
-               if f.category == "conflict" else (f.category, ident))
+        key = ((f.category, sid, _norm(f.title)[:60])
+               if f.category == "conflict" else (f.category, sid))
         if key in seen:
             continue
         seen.add(key)

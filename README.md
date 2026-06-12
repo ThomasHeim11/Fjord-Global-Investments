@@ -3,8 +3,8 @@
 ## What the application does
 
 **Review** is the heart of the tool. One click, and the AI reads all three
-sources and lists every governance issue it found, each ranked Act now /
-Review soon / For awareness, with a plain explanation and a recommended
+sources and lists every governance issue it found, each ranked by risk level
+(High / Medium / Low), with a plain explanation and a recommended
 action. Where two sources disagree it shows both side by side: "Per the agent
 letter: 2026-06-19. Per our register: 2028-01-10."
 

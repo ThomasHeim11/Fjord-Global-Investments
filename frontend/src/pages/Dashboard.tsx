@@ -47,6 +47,17 @@ export function Dashboard() {
   const findings = digest?.findings ?? [];
   const categories = useMemo(() => [...new Set(findings.map((f) => f.category))], [findings]);
 
+  // How many findings each category yields under the *current* severity filter,
+  // so a chip's count reflects what clicking it would actually show.
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const f of findings) {
+      if (severityFilter && f.severity !== severityFilter) continue;
+      counts[f.category] = (counts[f.category] ?? 0) + 1;
+    }
+    return counts;
+  }, [findings, severityFilter]);
+
   const filtered = findings.filter(
     (f) =>
       (!severityFilter || f.severity === severityFilter) &&
@@ -81,15 +92,14 @@ export function Dashboard() {
               <span className="review-bar-label">No review run yet</span>
             )}
           </div>
-          <div className="review-bar-action">
-            <button className="run-btn" onClick={runDigest} disabled={running}>
-              {running ? "Reviewing…" : run ? "Run review again" : "Run review"}
-            </button>
-            <p className="run-caption">
-              Each press re-reads your register, notifications and letters, ranks
-              every issue and recommends an action.
-            </p>
-          </div>
+          <button
+            className="run-btn"
+            onClick={runDigest}
+            disabled={running}
+            title="Re-reads your register, notifications and letters, ranks every issue by risk level and recommends an action."
+          >
+            {running ? "Reviewing…" : "Run portfolio review"}
+          </button>
         </div>
       </div>
 
@@ -129,14 +139,18 @@ export function Dashboard() {
                 Click a card to filter the list below.
               </p>
             </div>
-            <div className="stat-row">
+            <div className="stat-row" role="group" aria-label="Filter by risk level">
               <button className={`card stat ${!severityFilter ? "active" : ""}`}
+                      aria-pressed={!severityFilter}
+                      title="Show all issues"
                       onClick={() => setSeverityFilter(null)}>
                 <div className="num">{run.stats.total}</div>
                 <div className="label">All issues</div>
               </button>
               {SEVERITIES.map((s) => (
                 <button key={s} className={`card stat ${s} ${severityFilter === s ? "active" : ""}`}
+                        aria-pressed={severityFilter === s}
+                        title={`Filter to ${SEVERITY_LABELS[s]} risk`}
                         onClick={() => setSeverityFilter(severityFilter === s ? null : s)}>
                   <div className="num">{run.stats[s]}</div>
                   <div className="label">{SEVERITY_LABELS[s]}</div>
@@ -153,14 +167,21 @@ export function Dashboard() {
               </div>
             )}
 
-            <div className="controls">
+            <div className="controls" role="group" aria-label="Filter by type">
               <span className="controls-label">Filter by type</span>
-              {categories.map((c) => (
-                <button key={c} className={`chip ${categoryFilter === c ? "on" : ""}`}
-                        onClick={() => setCategoryFilter(categoryFilter === c ? null : c)}>
-                  {CATEGORY_LABELS[c] ?? c}
-                </button>
-              ))}
+              {categories.map((c) => {
+                const count = categoryCounts[c] ?? 0;
+                const selected = categoryFilter === c;
+                return (
+                  <button key={c} className={`chip ${selected ? "on" : ""}`}
+                          aria-pressed={selected}
+                          disabled={count === 0 && !selected}
+                          onClick={() => setCategoryFilter(selected ? null : c)}>
+                    {CATEGORY_LABELS[c] ?? c}
+                    <span className="chip-count">{count}</span>
+                  </button>
+                );
+              })}
               {filtersActive && (
                 <button className="chip clear"
                         onClick={() => { setSeverityFilter(null); setCategoryFilter(null); }}>

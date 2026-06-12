@@ -22,9 +22,16 @@ def test_expired_mandate_is_marked_expired():
     assert "EXPIRED 8 days ago" in out
 
 
-def test_future_mandate_shows_days_remaining():
+def test_mandate_within_60_days_is_highlighted():
     out = _annotate(row(board_mandate_expiry="2026-06-21"), {"FGI-001"}, TODAY)
-    assert "in 10 days" in out
+    assert "expiring in 10 days" in out
+
+
+def test_mandate_beyond_60_days_is_a_bare_date():
+    # 233 days out must NOT be highlighted, or the model over-flags it
+    out = _annotate(row(board_mandate_expiry="2027-02-01"), {"FGI-001"}, TODAY)
+    assert "2027-02-01" in out
+    assert "days" not in out  # no "(in X days)" / "expiring" note
 
 
 def test_parent_not_in_register_flagged():
