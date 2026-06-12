@@ -44,9 +44,10 @@ app.add_middleware(
 
 @app.post("/api/digest")
 def trigger_digest(fresh: bool = False) -> dict:
-    """Run the review. fresh=true forces real LLM calls (ignores the cache) so
-    the pipeline can be demonstrated working live; it leaves the existing cached
-    responses untouched, so a normal run still reproduces instantly afterwards."""
+    """Run the review. fresh=true forces a genuine live re-scan (ignores the
+    cache on read) and records the result, so the cache always holds the last
+    successful scan. The frontend calls fresh=true first and falls back to
+    fresh=false (replay the cached scan) if the live run is rate-limited."""
     from .llm.client import LLMNotConfigured, LLMQuotaExhausted, set_bypass_cache
     set_bypass_cache(fresh)
     try:

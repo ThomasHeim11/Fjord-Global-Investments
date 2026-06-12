@@ -20,6 +20,7 @@ export function Dashboard() {
   const [digest, setDigest] = useState<DigestResponse | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [severityFilter, setSeverityFilter] = useState<Severity | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -28,16 +29,23 @@ export function Dashboard() {
   useEffect(() => { load(); }, []);
   useEffect(() => { setPage(1); }, [severityFilter, categoryFilter]);
 
-  // One button. Results are cached, so a re-run is instant; and because we only
-  // refresh the view on success, a failed run keeps the last review on screen.
+  // One button: run a genuine live re-scan first. If the AI is rate-limited,
+  // fall back to replaying the last cached scan so a result always appears.
   const runDigest = async () => {
     setRunning(true);
     setError(null);
+    setNotice(null);
     try {
-      await api.triggerDigest();
+      await api.triggerDigest(true);   // live re-scan
       await load();
-    } catch (e) {
-      setError(String(e));
+    } catch {
+      try {
+        await api.triggerDigest(false); // fall back to the cached scan
+        await load();
+        setNotice("The live scan was rate-limited, so this shows your last cached review. Try again in a moment for a fresh scan.");
+      } catch (e2) {
+        setError(String(e2));
+      }
     } finally {
       setRunning(false);
     }
@@ -93,10 +101,12 @@ export function Dashboard() {
           <strong>Run review</strong> reads your register, board notifications and
           agent letters, finds every governance issue, ranks each one
           (Act now / Review soon / For awareness) and writes a recommended action.
-          Re-runs are cached, so they are instant and a failed run never loses
-          your last review.
+          Each press runs a fresh live scan; if the AI is momentarily
+          rate-limited it falls back to your last cached review, so you always
+          get a result.
         </p>
 
+        {notice && <div className="review-notice">{notice}</div>}
         {error && <div className="card error-card">{error}</div>}
 
         {!run && !running && (

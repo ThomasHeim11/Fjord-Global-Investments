@@ -47,9 +47,10 @@ _groq = None
 _ollama = None
 _anthropic = None
 
-# When set, parse_structured ignores the cache for both read and write: it
-# forces real LLM calls (so a run can be demonstrated live) WITHOUT overwriting
-# the existing cached responses, so the polished cached version stays intact.
+# When set, parse_structured ignores the cache on READ — it forces real LLM
+# calls so the run is a genuine live re-scan. It still WRITES its results, so
+# the cache always holds the last successful scan to fall back on if a later
+# live run is rate-limited.
 _bypass_cache: ContextVar[bool] = ContextVar("llm_bypass_cache", default=False)
 
 
@@ -310,12 +311,11 @@ def parse_structured(system: str, prompt: str, output_model: type[BaseModel],
     else:
         result = _call_anthropic(system, prompt, output_model, max_tokens)
 
-    # In bypass mode we deliberately do NOT write: a live demo run must leave
-    # the existing cached responses untouched.
-    if not bypass:
-        with get_conn() as conn:
-            conn.execute(
-                "INSERT OR REPLACE INTO llm_cache (cache_key, response) VALUES (?, ?)",
-                (key, result.model_dump_json()),
-            )
+    # Always write — even on a live (bypass) run — so the cache tracks the most
+    # recent successful scan and can serve as the fallback next time.
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO llm_cache (cache_key, response) VALUES (?, ?)",
+            (key, result.model_dump_json()),
+        )
     return result
