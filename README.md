@@ -2,15 +2,6 @@
 
 ## What the application does
 
-```
-   Your three data sources                          Three ways to use it
-   -----------------------                          --------------------
-
-   register.csv   (100 entities) --+            +-->  REVIEW    ranked governance issues
-   board_updates.json  (~30)       +-- ingest --+-->  REGISTER  the register, searchable
-   3 agent letters     (PDF)     --+            +-->  ASK       answers, with sources
-```
-
 **Review** is the heart of the tool. One click, and the AI reads all three
 sources and lists every governance issue it found, each ranked Act now /
 Review soon / For awareness, with a plain explanation and a recommended
@@ -27,33 +18,67 @@ mandates expire in the next 60 days?"
 
 ## How it works
 
+Three stages: get the messy data clean, make it searchable, then let the AI
+reason over it.
+
 ```
-data/ (CSV, JSON, PDFs)
-   |  ingest: parsing, date normalisation, PDF text extraction
-   v
-SQLite  +  FTS5 keyword index (BM25)  +  FAISS vector index (local embeddings)
-   |
-   |  POST /api/digest  (the AI pipeline, all LLM passes)
-   |    1. Entity resolution: match messy notification names to the register,
-   |       with confidence scores. "No match" is a valid answer, and every
-   |       unmatched notification becomes an unknown-entity finding.
-   |    2. Register analysis, three focused passes:
-   |       a. per-entity review in batches (mandates, filings, status,
-   |          record quality), over precomputed date/reference annotations
-   |       b. cross-entity structure (duplicate names, director
-   |          concentration, ownership patterns)
-   |       c. notification hygiene (duplicates, contradictions, updates
-   |          that make no sense for the entity's status)
-   |    3. Letter reconciliation: an exact-lookup cross-check splits the
-   |       entities each letter names into present/absent, then the LLM
-   |       writes findings for unknown entities and compares the rest
-   |       field by field against the register.
-   |    4. De-duplication: the same issue surfaced by two passes is collapsed
-   |       to one finding.
-   |    5. Recommendations: one action per finding, plus the executive summary.
-   v
-React frontend (Vite + TypeScript), styled on nbim.no's design tokens
+   1. PREPARE              2. STORE & INDEX            3. USE IT (the AI)
+   ----------             ----------------            ------------------
+
+   CSV  ─┐                SQLite  the register,       REVIEW  one click runs
+   JSON  ├─►  ingest ─►           queried with SQL ─► 5 LLM passes and lists
+   PDFs ─┘                BM25    keyword index       every issue + a fix
+                          vector  meaning index   ─► ASK     ask in plain
+                                                     English, get an answer
+                                                     with its sources cited
+                                                            │
+                                                            ▼
+                                                      React frontend
 ```
+
+The Review path and the Ask path read the same stored data; Review scans
+everything in one pass, Ask retrieves just the passages a question needs.
+That retrieval step is the hybrid RAG pipeline:
+
+```
+   How Ask finds the right text (hybrid RAG):
+
+   your question ─┬─► BM25 search    (exact words: names, IDs, "S.à r.l.") ─┐
+                  │                                                         ├─► merge ─► top passages ─► LLM answer
+                  └─► vector search  (meaning: "compliance problems")      ─┘
+```
+
+The two searches catch different things, so we run both and merge the rankings
+(reciprocal rank fusion). The merged passages, plus the SQL facts, are handed
+to the LLM, which writes the answer and cites where each part came from.
+
+**1. Prepare the data.** Ingest reads the three sources, extracts text from
+the PDFs, and normalises the dates (the notifications mix formats, so we pin
+them to one calendar). The result is one clean, queryable copy of everything.
+
+**2. Store and index (SQLite + hybrid RAG).** The register lives in SQLite as
+structured facts, queried with plain SQL. The free-text documents (letters,
+notification notes) also get two search indexes: a keyword index (BM25) for
+exact matches like entity names and legal suffixes, and a vector index for
+meaning-based matches like "compliance problems." Searching both and merging
+the results is "hybrid RAG": it finds things neither index would alone, and
+it powers the Ask page.
+
+**3. Review (the AI pipeline).** One request (`POST /api/digest`) runs the
+analysis as a series of focused LLM passes:
+
+1. **Entity resolution**: match each messy notification name to the register.
+   "No match" is a valid answer; every unmatched notification becomes an
+   unknown-entity finding.
+2. **Register analysis** in three passes: per-entity review (mandates,
+   filings, status), cross-entity structure (duplicate names, director
+   concentration), and notification hygiene (duplicates, contradictions).
+3. **Letter reconciliation**: check which entities each letter names exist in
+   the register, then compare the rest field by field to catch disagreements.
+4. **De-duplication**: collapse the same issue surfaced by two passes into one.
+5. **Recommendations**: one action per finding, plus the executive summary.
+
+The results render in the React frontend, styled on nbim.no's design tokens.
 
 **Stack:** FastAPI + SQLite on the backend, React on the frontend, LLMs via
 Groq (free-tier open models) with local Ollama as fallback and Anthropic as a
