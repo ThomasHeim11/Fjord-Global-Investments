@@ -12,7 +12,7 @@ export default function App() {
         <nav>
           <NavLink to="/" end>Review</NavLink>
           <NavLink to="/entities">Register</NavLink>
-          <NavLink to="/ask">Ask</NavLink>
+          <NavLink to="/ask">PortfolioGPT</NavLink>
         </nav>
       </header>
       <Routes>

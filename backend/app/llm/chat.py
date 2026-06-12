@@ -46,8 +46,14 @@ Rules:
 - An entity named in a letter or notification but absent from the register
   still belongs in the answer when it meets the question's criterion — say
   it is not in the register.
-- Format the answer with one entity per line, separated by newline characters:
-  "Name (ID): the issue in a few words."
+- Match the answer's shape to the question:
+  * "Which entities ..." -> one entity per line: "Name (ID): the reason in a few words."
+  * "Summarise the letters / what is each agent asking ..." -> one line per
+    letter: the agent or jurisdiction, what they want, and any deadline.
+  * "Which jurisdictions ..." or any roll-up -> group by that dimension with a
+    count and the entities under each, not a flat entity list.
+  Never force a per-entity list onto a question that asks for a summary or a
+  roll-up.
 - If the context doesn't contain the answer, say so plainly.
 - When sources disagree (e.g. a letter vs the register), present both sides.
 - Be concise and concrete: name entity IDs, dates and jurisdictions.

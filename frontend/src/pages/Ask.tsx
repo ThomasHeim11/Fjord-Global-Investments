@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 const BASE = "http://127.0.0.1:8000/api";
 
@@ -14,11 +14,26 @@ interface ChatMessage {
   sources?: Source[];
 }
 
+// Questions Review and Register can't answer at a glance: summarising the
+// letters, combining fields, and rolling up the portfolio. This is where the
+// document retrieval and free-form reasoning earn their place.
 const SUGGESTIONS = [
-  "Which entities have the most urgent problems right now?",
-  "What do the agent letters say that contradicts our register?",
-  "Which Singapore entities have open compliance issues?",
-  "Which board mandates expire in the next 60 days?",
+  {
+    q: "What is each agent asking us to do in their letters, and by when?",
+    hint: "Reads the agent letters",
+  },
+  {
+    q: "Which dissolved or dormant entities still have an active board mandate?",
+    hint: "Combines status and mandate",
+  },
+  {
+    q: "What issues do the agent letters raise that our register doesn't show?",
+    hint: "Letters vs the register",
+  },
+  {
+    q: "Which jurisdictions have the most overdue or unknown filings?",
+    hint: "Rolls up the portfolio",
+  },
 ];
 
 export function Ask() {
@@ -27,6 +42,15 @@ export function Ask() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // grow the composer with its content, up to a cap
+  useEffect(() => {
+    const ta = taRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+  }, [input]);
 
   const send = async (question: string) => {
     if (!question.trim() || busy) return;
@@ -69,47 +93,102 @@ export function Ask() {
     return [...parts].join(" · ");
   };
 
-  return (
-    <div className="page" style={{ maxWidth: 860 }}>
-      <h1>Ask the portfolio</h1>
-      <p className="muted">
-        Natural-language questions over the register, agent letters and notifications.
-        Answers cite their sources.
-      </p>
+  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send(input);
+    }
+  };
 
-      {messages.length === 0 && (
-        <div className="controls" style={{ marginTop: 24 }}>
+  const empty = messages.length === 0;
+
+  return (
+    <div className="pgpt">
+      <div className="pgpt-head">
+        <div>
+          <h1 className="pgpt-title">
+            Portfolio<span>GPT</span>
+          </h1>
+          <p className="pgpt-sub">
+            Ask across the register and the agent letters. Every answer reads the
+            source text and cites where it came from.
+          </p>
+        </div>
+        {!empty && (
+          <button className="pgpt-new" onClick={() => { setMessages([]); setError(null); }}>
+            New chat
+          </button>
+        )}
+      </div>
+
+      {empty && (
+        <div className="pgpt-suggestions">
           {SUGGESTIONS.map((s) => (
-            <button key={s} className="chip" onClick={() => send(s)}>{s}</button>
+            <button key={s.q} className="pgpt-card" onClick={() => send(s.q)}>
+              <span className="pgpt-card-q">{s.q}</span>
+              <span className="pgpt-card-foot">
+                <span className="pgpt-card-hint">{s.hint}</span>
+                <span className="pgpt-card-arrow">→</span>
+              </span>
+            </button>
           ))}
         </div>
       )}
 
-      <div style={{ margin: "20px 0" }}>
-        {messages.map((m, i) => (
-          <div key={i} className={`chat-msg ${m.role}`}>
-            <div className="who">{m.role === "user" ? "You" : "Assistant"}</div>
-            <div className="bubble">
-              {m.content}
-              {m.sources && m.sources.length > 0 && (
-                <div className="chat-sources">
-                  <span className="muted">Sources: {sourceSummary(m.sources)}</span>
-                </div>
-              )}
+      <div className="pgpt-thread">
+        {messages.map((m, i) =>
+          m.role === "user" ? (
+            <div key={i} className="pgpt-turn user">
+              <div className="pgpt-bubble-user">{m.content}</div>
+            </div>
+          ) : (
+            <div key={i} className="pgpt-turn answer">
+              <div className="pgpt-avatar">✦</div>
+              <div className="pgpt-answer-body">
+                <div className="pgpt-answer-text">{m.content}</div>
+                {m.sources && m.sources.length > 0 && (
+                  <div className="pgpt-sources">
+                    <span className="pgpt-sources-label">Sources</span>
+                    {sourceSummary(m.sources)}
+                  </div>
+                )}
+              </div>
+            </div>
+          ),
+        )}
+        {busy && (
+          <div className="pgpt-turn answer">
+            <div className="pgpt-avatar">✦</div>
+            <div className="pgpt-answer-body">
+              <div className="pgpt-typing"><span /><span /><span /></div>
             </div>
           </div>
-        ))}
-        {busy && <div className="chat-msg assistant"><div className="bubble muted">Reading the portfolio…</div></div>}
+        )}
         <div ref={bottomRef} />
       </div>
 
-      {error && <div className="card" style={{ borderColor: "var(--red)", marginBottom: 16 }}>{error}</div>}
+      {error && <div className="pgpt-error">{error}</div>}
 
-      <form className="chat-input" onSubmit={(e) => { e.preventDefault(); send(input); }}>
-        <input type="text" value={input} placeholder="e.g. Which entities in Luxembourg need attention?"
-               onChange={(e) => setInput(e.target.value)} disabled={busy} />
-        <button className="primary" type="submit" disabled={busy || !input.trim()}>Ask</button>
-      </form>
+      <div className="pgpt-composer">
+        <form onSubmit={(e) => { e.preventDefault(); send(input); }}>
+          <textarea
+            ref={taRef}
+            rows={1}
+            value={input}
+            placeholder="Ask about the register, the letters, deadlines, jurisdictions…"
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={onKeyDown}
+            disabled={busy}
+          />
+          <button className="pgpt-send" type="submit" disabled={busy || !input.trim()} aria-label="Send">
+            ↑
+          </button>
+        </form>
+        <p className="pgpt-disclaimer">
+          PortfolioGPT only reads your register and the uploaded letters. Verify
+          anything material against the cited source.
+        </p>
+      </div>
     </div>
   );
 }

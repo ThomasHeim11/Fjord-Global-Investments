@@ -447,24 +447,104 @@ td a { color: var(--accent); }
 .kv dd a { color: var(--accent); }
 .empty { padding: 64px; text-align: center; color: var(--ink-muted); }
 
-/* ---- chat ---- */
-.chat-msg { margin-bottom: 18px; }
-.chat-msg .who {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ink-muted);
-  margin-bottom: 4px;
+/* ---- PortfolioGPT (conversational Q&A) ---- */
+.pgpt {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 40px 24px 140px;   /* bottom room for the sticky composer */
 }
-.chat-msg .bubble {
-  padding: 14px 18px;
-  border-radius: 6px;
-  white-space: pre-wrap;
+.pgpt-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.pgpt-title { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; color: var(--midnight); }
+.pgpt-title span { color: var(--accent); }
+.pgpt-sub { color: var(--ink-soft); font-size: 15px; line-height: 1.6; margin: 0; max-width: 56ch; }
+.pgpt-new {
+  flex-shrink: 0; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 99px; padding: 8px 16px; font-family: inherit; font-size: 13px;
+  font-weight: 600; color: var(--ink-soft); cursor: pointer; transition: all .12s;
 }
-.chat-msg.user .bubble { background: var(--sky); border: 1px solid var(--line); }
-.chat-msg.assistant .bubble { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--sea-medium); }
-.chat-sources { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
-.chat-source { font-size: 13px; margin-bottom: 6px; }
-.chat-input { display: flex; gap: 10px; }
-.chat-input input { flex: 1; padding: 13px 16px; }
+.pgpt-new:hover { border-color: var(--accent); color: var(--accent); }
+
+/* empty-state suggestion cards */
+.pgpt-suggestions {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 32px 0 8px;
+}
+.pgpt-card {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 16px;
+  text-align: left; min-height: 116px; padding: 18px 20px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  font-family: inherit; cursor: pointer; transition: border-color .14s, transform .14s, box-shadow .14s;
+}
+.pgpt-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,21,56,0.08); }
+.pgpt-card-q { font-size: 15px; font-weight: 600; color: var(--midnight); line-height: 1.45; }
+.pgpt-card-foot { display: flex; align-items: center; justify-content: space-between; }
+.pgpt-card-hint { font-size: 12px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.pgpt-card-arrow { color: var(--ink-muted); font-size: 16px; transition: color .14s, transform .14s; }
+.pgpt-card:hover .pgpt-card-arrow { color: var(--accent); transform: translateX(3px); }
+
+/* conversation */
+.pgpt-thread { margin: 28px 0 0; }
+.pgpt-turn { margin-bottom: 28px; }
+.pgpt-turn.user { display: flex; justify-content: flex-end; }
+.pgpt-bubble-user {
+  background: var(--sky); border: 1px solid var(--line);
+  border-radius: 18px 18px 6px 18px; padding: 12px 16px; max-width: 82%;
+  white-space: pre-wrap; line-height: 1.55; color: var(--midnight);
+}
+.pgpt-turn.answer { display: flex; gap: 14px; }
+.pgpt-avatar {
+  width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%;
+  background: var(--midnight); color: #fff; display: flex; align-items: center;
+  justify-content: center; font-size: 14px; margin-top: 2px;
+}
+.pgpt-answer-body { flex: 1; min-width: 0; padding-top: 3px; }
+.pgpt-answer-text { white-space: pre-wrap; line-height: 1.7; color: var(--ink); }
+.pgpt-sources {
+  margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line);
+  font-size: 13px; color: var(--ink-muted);
+}
+.pgpt-sources-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--ink-muted); margin-right: 8px;
+}
+
+/* typing indicator */
+.pgpt-typing { display: inline-flex; gap: 5px; padding: 6px 0; }
+.pgpt-typing span {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--ink-muted);
+  animation: pgpt-bounce 1.2s infinite ease-in-out both;
+}
+.pgpt-typing span:nth-child(2) { animation-delay: 0.15s; }
+.pgpt-typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes pgpt-bounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+
+.pgpt-error {
+  border: 1px solid var(--red); background: #fdf2f2; color: var(--red);
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 14px;
+}
+
+/* sticky composer */
+.pgpt-composer {
+  position: sticky; bottom: 20px; margin-top: 18px;
+}
+.pgpt-composer form {
+  display: flex; align-items: flex-end; gap: 8px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+  padding: 8px 8px 8px 18px; box-shadow: 0 4px 24px rgba(0,21,56,0.08);
+  transition: border-color .14s, box-shadow .14s;
+}
+.pgpt-composer form:focus-within { border-color: var(--accent); box-shadow: 0 4px 28px rgba(0,38,255,0.14); }
+.pgpt-composer textarea {
+  flex: 1; border: none; outline: none; resize: none; background: transparent;
+  font-family: inherit; font-size: 15px; line-height: 1.5; color: var(--ink);
+  padding: 8px 0; max-height: 160px;
+}
+.pgpt-send {
+  width: 40px; height: 40px; flex-shrink: 0; border: none; border-radius: 50%;
+  background: var(--accent); color: #fff; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: background .12s;
+}
+.pgpt-send:hover { background: var(--midnight); }
+.pgpt-send:disabled { background: var(--gray-light); color: var(--ink-muted); cursor: default; }
+.pgpt-disclaimer { text-align: center; font-size: 12px; color: var(--ink-muted); margin: 10px 0 0; }
+
+@media (max-width: 640px) { .pgpt-suggestions { grid-template-columns: 1fr; } }
