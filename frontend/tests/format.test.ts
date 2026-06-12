@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanTitle, formatDate, sourceSummary } from "../src/format";
+import { cleanTitle, formatDate, sourceParts } from "../src/format";
 import type { Source } from "../src/chatStore";
 
 describe("formatDate", () => {
@@ -35,30 +35,35 @@ describe("cleanTitle", () => {
   });
 });
 
-describe("sourceSummary", () => {
+describe("sourceParts", () => {
   const src = (kind: string, ref = ""): Source => ({ kind, ref, detail: "" });
 
-  it("maps each source kind to plain language", () => {
-    const out = sourceSummary([
+  it("maps each source kind to a label, with a file on letters", () => {
+    const out = sourceParts([
       src("register", "FGI-001"),
       src("letter", "letter:lux.pdf"),
       src("board_update", "12"),
       src("finding", "x"),
     ]);
-    expect(out).toBe("the register · lux.pdf · board notifications · review findings");
+    expect(out).toEqual([
+      { label: "the register", file: undefined },
+      { label: "lux.pdf", file: "lux.pdf" },
+      { label: "board notifications", file: undefined },
+      { label: "review findings", file: undefined },
+    ]);
   });
 
   it("de-duplicates repeated sources", () => {
-    const out = sourceSummary([src("register", "a"), src("register", "b")]);
-    expect(out).toBe("the register");
+    expect(sourceParts([src("register", "a"), src("register", "b")]))
+      .toEqual([{ label: "the register", file: undefined }]);
   });
 
-  it("strips the letter: prefix from filenames", () => {
-    expect(sourceSummary([src("letter", "letter:netherlands.pdf")]))
-      .toBe("netherlands.pdf");
+  it("strips the letter: prefix to get the filename", () => {
+    expect(sourceParts([src("letter", "letter: netherlands.pdf")]))
+      .toEqual([{ label: "netherlands.pdf", file: "netherlands.pdf" }]);
   });
 
-  it("returns an empty string for no sources", () => {
-    expect(sourceSummary([])).toBe("");
+  it("returns an empty list for no sources", () => {
+    expect(sourceParts([])).toEqual([]);
   });
 });

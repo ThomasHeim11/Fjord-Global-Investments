@@ -1,7 +1,21 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { api } from "../api";
 import type { ChatMessage, ChatSummary } from "../chatStore";
-import { sourceSummary } from "../format";
+import { sourceParts } from "../format";
+
+const BASE = "http://127.0.0.1:8000/api";
+
+// Load the PDF viewer (and PDF.js) only when a cited letter is opened.
+const PdfViewer = lazy(() =>
+  import("../components/PdfViewer").then((m) => ({ default: m.PdfViewer })),
+);
 
 // Questions Review and Register can't answer at a glance: summarising the
 // letters, combining fields, and rolling up the portfolio. This is where the
@@ -32,15 +46,22 @@ export function Ask() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pdfFile, setPdfFile] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   const empty = messages.length === 0;
 
-  const refreshList = () => api.listChats().then(setChats).catch(() => {});
+  const refreshList = () =>
+    api
+      .listChats()
+      .then(setChats)
+      .catch(() => {});
 
   // load the conversation list once
-  useEffect(() => { refreshList(); }, []);
+  useEffect(() => {
+    refreshList();
+  }, []);
 
   // grow the composer with its content, up to a cap
   useEffect(() => {
@@ -51,7 +72,10 @@ export function Ask() {
   }, [input]);
 
   useEffect(() => {
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 30);
+    setTimeout(
+      () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+      30,
+    );
   }, [messages.length]);
 
   const openChat = async (id: string) => {
@@ -93,8 +117,12 @@ export function Ask() {
     setError(null);
     try {
       const reply = await api.sendChat(question, activeId);
-      setMessages((m) => [...m, { role: "assistant", content: reply.answer, sources: reply.sources }]);
-      if (reply.conversation_id !== activeId) setActiveId(reply.conversation_id);
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: reply.answer, sources: reply.sources },
+      ]);
+      if (reply.conversation_id !== activeId)
+        setActiveId(reply.conversation_id);
       refreshList(); // titles / ordering live on the server
     } catch (e) {
       setError(String(e));
@@ -118,7 +146,9 @@ export function Ask() {
           <span className="pgpt-newchat-plus">+</span> New chat
         </button>
         <div className="pgpt-history">
-          {chats.length === 0 && <div className="pgpt-history-empty">No conversations yet</div>}
+          {chats.length === 0 && (
+            <div className="pgpt-history-empty">No conversations yet</div>
+          )}
           {chats.map((c) => (
             <div
               key={c.id}
@@ -128,7 +158,10 @@ export function Ask() {
               <span className="pgpt-history-title">{c.title}</span>
               <button
                 className="pgpt-history-del"
-                onClick={(e) => { e.stopPropagation(); deleteChat(c.id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteChat(c.id);
+                }}
                 aria-label="Delete conversation"
               >
                 ✕
@@ -144,11 +177,7 @@ export function Ask() {
             <h1 className="pgpt-title">
               Portfolio<span>GPT</span>
             </h1>
-            <p className="pgpt-sub">
-              Ask across the register, the agent letters and the board
-              notifications. Every answer reads the source text and cites where
-              it came from.
-            </p>
+            <p className="pgpt-sub">Ask anything across your register, agent letters and board notifications.</p>
           </div>
         </div>
 
@@ -180,7 +209,23 @@ export function Ask() {
                   {m.sources && m.sources.length > 0 && (
                     <div className="pgpt-sources">
                       <span className="pgpt-sources-label">Sources</span>
-                      {sourceSummary(m.sources)}
+                      {sourceParts(m.sources).map((p, j) => (
+                        <span key={j}>
+                          {j > 0 && " · "}
+                          {p.file ? (
+                            <button
+                              type="button"
+                              className="evidence-link"
+                              onClick={() => setPdfFile(p.file!)}
+                              title="Open this letter"
+                            >
+                              {p.label} ↗
+                            </button>
+                          ) : (
+                            p.label
+                          )}
+                        </span>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -191,7 +236,11 @@ export function Ask() {
             <div className="pgpt-turn answer">
               <div className="pgpt-avatar">✦</div>
               <div className="pgpt-answer-body">
-                <div className="pgpt-typing"><span /><span /><span /></div>
+                <div className="pgpt-typing">
+                  <span />
+                  <span />
+                  <span />
+                </div>
               </div>
             </div>
           )}
@@ -201,7 +250,12 @@ export function Ask() {
         {error && <div className="pgpt-error">{error}</div>}
 
         <div className="pgpt-composer">
-          <form onSubmit={(e) => { e.preventDefault(); send(input); }}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(input);
+            }}
+          >
             <textarea
               ref={taRef}
               rows={1}
@@ -211,16 +265,38 @@ export function Ask() {
               onKeyDown={onKeyDown}
               disabled={busy}
             />
-            <button className="pgpt-send" type="submit" disabled={busy || !input.trim()} aria-label="Send">
+            <button
+              className="pgpt-send"
+              type="submit"
+              disabled={busy || !input.trim()}
+              aria-label="Send"
+            >
               ↑
             </button>
           </form>
           <p className="pgpt-disclaimer">
-            PortfolioGPT only reads your register, the agent letters and the
-            board notifications. Verify anything material against the cited source.
+            PortfolioGPT only uses your own data. Verify anything material
+            against the cited source.
           </p>
         </div>
       </div>
+
+      {pdfFile && (
+        <Suspense
+          fallback={
+            <div className="pdf-overlay">
+              <div className="pdf-status">Loading viewer…</div>
+            </div>
+          }
+        >
+          <PdfViewer
+            url={`${BASE}/letters/${encodeURIComponent(pdfFile)}`}
+            filename={pdfFile}
+            highlight=""
+            onClose={() => setPdfFile(null)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

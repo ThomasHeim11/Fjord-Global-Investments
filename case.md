@@ -35,4 +35,3 @@ how you reason about messy, real-world governance data.
 ## Questions?
 
 Make assumptions and justify them when you meet us in the interview.
-/

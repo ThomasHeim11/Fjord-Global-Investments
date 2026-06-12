@@ -20,15 +20,29 @@ export function cleanTitle(raw: string, entityId: string | null): string {
   return t.replace(/\s+/g, " ").trim().replace(/[:\-–—·,]\s*$/, "");
 }
 
-// Collapse a list of cited sources to one de-duplicated provenance line:
-// "the register · luxembourg_mandate_warning.pdf · review findings".
-export function sourceSummary(sources: Source[]): string {
-  const parts = new Set<string>();
+export interface SourcePart {
+  label: string;
+  file?: string; // set for letter sources, so the UI can open the PDF
+}
+
+// Collapse cited sources to a de-duplicated, ordered list. Letter sources carry
+// the filename so the UI can render them as a link to the in-app PDF viewer;
+// the rest are plain provenance labels.
+export function sourceParts(sources: Source[]): SourcePart[] {
+  const seen = new Set<string>();
+  const parts: SourcePart[] = [];
   for (const s of sources) {
-    if (s.kind === "register") parts.add("the register");
-    else if (s.kind === "letter") parts.add(s.ref.replace(/^letter:/i, ""));
-    else if (s.kind === "board_update") parts.add("board notifications");
-    else parts.add("review findings");
+    let label: string;
+    let file: string | undefined;
+    if (s.kind === "register") label = "the register";
+    else if (s.kind === "letter") {
+      file = s.ref.replace(/^letter:\s*/i, "").trim();
+      label = file;
+    } else if (s.kind === "board_update") label = "board notifications";
+    else label = "review findings";
+    if (seen.has(label)) continue;
+    seen.add(label);
+    parts.push({ label, file });
   }
-  return [...parts].join(" · ");
+  return parts;
 }
