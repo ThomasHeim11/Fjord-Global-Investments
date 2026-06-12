@@ -26,11 +26,6 @@ export const api = {
     }
     return res.json();
   },
-  clearDigest: async (): Promise<unknown> => {
-    const res = await fetch(`${BASE}/digest`, { method: "DELETE" });
-    if (!res.ok) throw new Error(`Clear failed: ${res.status}`);
-    return res.json();
-  },
   getDigest: () => get<DigestResponse>("/digest"),
   getEntities: (params: Record<string, string>) =>
     get<Entity[]>(`/entities?${new URLSearchParams(params)}`),

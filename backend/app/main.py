@@ -62,17 +62,6 @@ def trigger_digest(fresh: bool = False) -> dict:
         set_bypass_cache(False)
 
 
-@app.delete("/api/digest")
-def clear_digest() -> dict:
-    """Reset the displayed review. The LLM cache is kept on purpose, so the
-    next run reproduces instantly and for free instead of re-spending the
-    (limited) free-tier token budget."""
-    with get_conn() as conn:
-        conn.execute("DELETE FROM findings")
-        conn.execute("DELETE FROM digest_runs")
-    return {"cleared": True}
-
-
 @app.get("/api/digest")
 def get_digest() -> dict:
     with get_conn() as conn:

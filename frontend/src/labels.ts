@@ -7,12 +7,6 @@ export const SEVERITY_LABELS: Record<Severity, string> = {
   info: "For awareness",
 };
 
-export const SEVERITY_HEADINGS: Record<Severity, string> = {
-  critical: "Act now — before the board meeting",
-  warning: "Review soon",
-  info: "For awareness",
-};
-
 export const CATEGORY_LABELS: Record<string, string> = {
   data_integrity: "Record problem",
   mandate: "Board mandate",
