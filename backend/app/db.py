@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS findings (
     description    TEXT,
     evidence_json  TEXT,            -- which sources say what
     recommendation TEXT,            -- LLM-generated action
-    detected_by    TEXT             -- 'rule:<name>' | 'llm:reconciliation' | 'llm:resolution'
+    detected_by    TEXT             -- 'llm:analysis' | 'llm:reconciliation' | 'llm:resolution'
 );
 
 -- PortfolioGPT chat history, persisted server-side so conversations survive a

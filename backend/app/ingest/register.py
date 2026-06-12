@@ -1,8 +1,9 @@
 """Ingest subsidiaries.csv into the entities table.
 
-The register is structured data — it lives in SQL, not in the vector store.
+The register is structured data: it lives in SQL, not in the vector store.
 Values are stored as-is (including blanks and inconsistencies); data-quality
-problems are surfaced by the rule engine, not silently fixed at ingest time.
+problems are flagged later by the LLM analysis, not silently fixed at ingest
+time.
 """
 import csv
 

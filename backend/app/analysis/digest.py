@@ -6,8 +6,6 @@ every finding comes from a model pass.
   3. analyze      — LLM reviews register + notifications, surfaces all risks
   4. reconcile    — LLM compares each agent letter against the register
   5. recommend    — LLM writes one action per finding + executive summary
-
-Requires ANTHROPIC_API_KEY; raises LLMNotConfigured otherwise.
 """
 import json
 

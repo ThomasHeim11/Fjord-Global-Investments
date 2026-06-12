@@ -8,9 +8,10 @@ to scale linearly with register size:
      references, director concentration, structural oddities
   3. notifications review — duplicates, contradictions, implausible updates
 
-Design decision (deliberate): generalist LLM passes instead of hand-written
-rules — they extend to risk patterns nobody anticipated; batching is what
-makes the same pipeline work at 100 or 10,000 entities.
+Design decision (deliberate): the LLM is the analyst on every pass, so the
+review generalises to risk patterns nobody anticipated and absorbs new
+jurisdictions or letter formats without code changes. Batching is what makes
+the same pipeline work at 100 or 10,000 entities.
 """
 from typing import Literal
 

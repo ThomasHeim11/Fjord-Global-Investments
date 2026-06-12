@@ -1,10 +1,12 @@
 """FGI Subsidiary Management API.
 
-  POST /api/digest            run the digest pipeline (rules + LLM)
-  GET  /api/digest            latest digest run with findings
+  POST /api/digest            run the review pipeline (all LLM passes)
+  GET  /api/digest            latest review run with findings
   GET  /api/entities          register with filters (jurisdiction, status, q, ...)
   GET  /api/entities/{id}     entity detail: register row, updates, findings, children
-  GET  /api/search            hybrid retrieval over letters + updates
+  POST /api/chat              PortfolioGPT: answer a question and persist the turn
+  GET  /api/chats             list persisted conversations
+  GET  /api/search            hybrid retrieval over letters + updates (debug)
   GET  /api/meta              jurisdictions/statuses for filter dropdowns
 
 Run:  uvicorn app.main:app --reload --port 8000
