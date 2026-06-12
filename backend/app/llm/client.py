@@ -41,6 +41,7 @@ from ..config import (
     OLLAMA_MODEL,
     USE_OLLAMA_FALLBACK,
 )
+from .. import cancel
 from ..db import get_conn
 
 _groq = None
@@ -137,14 +138,23 @@ _last_groq_call = 0.0
 
 
 def _throttle_groq() -> None:
-    """Keep a minimum spacing between Groq calls so a review doesn't fire a
-    burst that trips the per-minute limit on every model at once."""
-    global _last_groq_call
+    """Space out *successful* Groq calls so a review doesn't burn the per-minute
+    token budget in a burst. The gap is measured from the last call that
+    actually consumed tokens, so falling through rate-limited models (which cost
+    nothing) stays instant instead of waiting once per rejection.
+
+    Also the point where cancellation bites: it runs before every Groq call."""
+    cancel.raise_if_cancelled()
     if GROQ_MIN_INTERVAL <= 0:
         return
     wait = GROQ_MIN_INTERVAL - (time.monotonic() - _last_groq_call)
     if wait > 0:
-        time.sleep(wait)
+        cancel.sleep(wait)  # interruptible: wakes and raises if Stop is pressed
+
+
+def _mark_groq_call() -> None:
+    """Record that a token-consuming call just happened (so the next one is paced)."""
+    global _last_groq_call
     _last_groq_call = time.monotonic()
 
 
@@ -224,8 +234,11 @@ def _call_groq(system, prompt, output_model, max_tokens, primary_model,
             try:
                 _throttle_groq()
                 result = _chat_json(client, model, system, prompt, output_model, max_tokens)
+                _mark_groq_call()  # only successful calls are paced
                 print(f"[llm] groq:{model} ✓", flush=True)
                 return result
+            except cancel.ReviewCancelled:
+                raise  # never retry a cancelled run; unwind immediately
             except Exception as exc:  # noqa: BLE001
                 if _is_recoverable(exc):
                     last_exc = exc
@@ -243,7 +256,7 @@ def _call_groq(system, prompt, output_model, max_tokens, primary_model,
         if had_rate_limit and round_i < GROQ_RETRY_ROUNDS - 1:
             wait = min(max(suggested_wait, 2.0), GROQ_MAX_BACKOFF)
             print(f"[llm] whole chain rate-limited, waiting {wait:.1f}s then retrying…", flush=True)
-            time.sleep(wait)
+            cancel.sleep(wait)  # interruptible: Stop wakes it immediately
             continue
         break
 

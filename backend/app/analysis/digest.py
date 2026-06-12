@@ -9,6 +9,7 @@ every finding comes from a model pass.
 """
 import json
 
+from .. import cancel
 from ..config import LLM_MODEL
 from ..db import get_conn
 from .models import SEVERITY_ORDER, Finding
@@ -119,6 +120,9 @@ def run_digest() -> dict:
 
     _log("5/5 writing recommendations and executive summary…")
     summary = recommend(findings)
+
+    # If Stop was pressed between the last LLM call and here, don't save a run.
+    cancel.raise_if_cancelled()
     _log("done — saving review")
 
     findings.sort(key=lambda f: (SEVERITY_ORDER.get(f.severity, 9), f.category))

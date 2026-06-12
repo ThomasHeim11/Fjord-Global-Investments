@@ -56,7 +56,7 @@ GROQ_REASONING_MODEL = os.environ.get("GROQ_REASONING_MODEL", "openai/gpt-oss-12
 # doesn't fire a burst that trips every model at once, and when the whole
 # chain IS momentarily limited, wait the suggested time and retry instead of
 # giving up.
-GROQ_MIN_INTERVAL = float(os.environ.get("GROQ_MIN_INTERVAL", "2.1"))   # seconds between calls
+GROQ_MIN_INTERVAL = float(os.environ.get("GROQ_MIN_INTERVAL", "6"))     # seconds between calls (wider = fewer per-minute rate limits, slower run)
 GROQ_RETRY_ROUNDS = int(os.environ.get("GROQ_RETRY_ROUNDS", "4"))       # chain passes before giving up
 GROQ_MAX_BACKOFF = float(os.environ.get("GROQ_MAX_BACKOFF", "30"))      # cap on a single wait
 

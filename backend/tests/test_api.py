@@ -124,6 +124,16 @@ def test_letter_pdf_rejects_path_traversal(client):
     assert client.get("/api/letters/secret..pdf").status_code == 400
 
 
+def test_cancel_endpoint_sets_the_flag(client):
+    from app import cancel
+    cancel.clear()
+    res = client.post("/api/digest/cancel")
+    assert res.status_code == 200
+    assert res.json() == {"cancelling": True}
+    assert cancel.is_cancelled()
+    cancel.clear()
+
+
 def test_digest_endpoint_returns_run(client, monkeypatch):
     import app.main as main_module
 

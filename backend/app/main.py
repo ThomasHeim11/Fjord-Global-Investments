@@ -51,11 +51,16 @@ def trigger_digest(fresh: bool = False) -> dict:
     """Run the review. fresh=true forces a genuine live re-scan (ignores the
     cache on read) and records the result, so the cache always holds the last
     successful scan. The frontend calls fresh=true first and falls back to
-    fresh=false (replay the cached scan) if the live run is rate-limited."""
+    fresh=false (replay the cached scan) if the live run is rate-limited.
+    Interruptible: POST /api/digest/cancel stops a run in progress."""
+    from . import cancel
     from .llm.client import LLMNotConfigured, LLMQuotaExhausted, set_bypass_cache
+    cancel.clear()           # reset any stale cancel flag from a previous run
     set_bypass_cache(fresh)
     try:
         return run_digest()
+    except cancel.ReviewCancelled:
+        raise HTTPException(409, "Review cancelled")
     except LLMNotConfigured as exc:
         raise HTTPException(503, str(exc))
     except LLMQuotaExhausted as exc:
@@ -64,6 +69,15 @@ def trigger_digest(fresh: bool = False) -> dict:
         raise HTTPException(502, f"Review failed: {str(exc)[:200]}")
     finally:
         set_bypass_cache(False)
+
+
+@app.post("/api/digest/cancel")
+def cancel_digest() -> dict:
+    """Ask a running review to stop. The pipeline checks the flag before each
+    LLM call and during its rate-limit waits, then unwinds without saving."""
+    from . import cancel
+    cancel.request_cancel()
+    return {"cancelling": True}
 
 
 @app.get("/api/digest")

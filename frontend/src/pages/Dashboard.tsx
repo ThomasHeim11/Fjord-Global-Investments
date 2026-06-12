@@ -11,7 +11,7 @@ const PAGE_SIZE = 12;
 
 export function Dashboard() {
   // The run lives at app level, so it keeps going if you navigate away.
-  const { digest, running, error, notice, runReview } = useReview();
+  const { digest, running, error, notice, runReview, stopReview } = useReview();
   const [severityFilter, setSeverityFilter] = useState<Severity | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -66,14 +66,19 @@ export function Dashboard() {
               <span className="review-bar-label">No review run yet</span>
             )}
           </div>
-          <button
-            className="run-btn"
-            onClick={runReview}
-            disabled={running}
-            title="Re-reads your register, notifications and letters, ranks every issue by risk level and recommends an action."
-          >
-            {running ? "Reviewing…" : "Run portfolio review"}
-          </button>
+          {running ? (
+            <button className="run-btn stop" onClick={stopReview} title="Stop waiting for this review">
+              Stop
+            </button>
+          ) : (
+            <button
+              className="run-btn"
+              onClick={runReview}
+              title="Re-reads your register, notifications and letters, ranks every issue by risk level and recommends an action."
+            >
+              Run portfolio review
+            </button>
+          )}
         </div>
       </div>
 

@@ -18,6 +18,16 @@ from app import db as db_module  # noqa: E402
 from app.db import get_conn, init_db  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _reset_cancel():
+    """The cancel flag is a module global; clear it around every test so a set
+    flag in one test can't leak into another (e.g. trip the LLM throttle)."""
+    from app import cancel
+    cancel.clear()
+    yield
+    cancel.clear()
+
+
 @pytest.fixture
 def db(tmp_path, monkeypatch):
     """A fresh, schema-initialised SQLite database for one test."""

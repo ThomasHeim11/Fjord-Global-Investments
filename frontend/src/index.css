@@ -254,6 +254,18 @@ a:hover {
   transform: translateY(-1px);
   box-shadow: 0 3px 12px rgba(0, 21, 56, 0.22);
 }
+/* Stop variant shown while a review is running */
+.run-btn.stop {
+  background: var(--red);
+  box-shadow: 0 2px 12px rgba(196, 30, 40, 0.25);
+}
+.run-btn.stop::before {
+  content: "■";
+  font-size: 15px;
+}
+.run-btn.stop:hover {
+  background: #9e1820;
+}
 .run-btn:active {
   transform: translateY(0);
 }
