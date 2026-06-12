@@ -10,8 +10,10 @@ from datetime import datetime
 _FORMATS = ["%Y-%m-%d", "%m/%d/%Y", "%d %B %Y", "%d %b %Y"]
 
 
-def to_iso(raw: str) -> str | None:
-    raw = (raw or "").strip()
+def to_iso(raw) -> str | None:
+    # Coerce defensively: board_updates.json is messy and a date may arrive as
+    # None or even a number, neither of which has .strip().
+    raw = str(raw if raw is not None else "").strip()
     for fmt in _FORMATS:
         try:
             return datetime.strptime(raw, fmt).date().isoformat()

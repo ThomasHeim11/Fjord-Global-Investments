@@ -5,6 +5,8 @@ chunks and the FTS5 (BM25) keyword index. Everything is rebuilt from the
 source data in /data, so the database itself is disposable.
 """
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 from .config import DB_PATH
 
@@ -118,11 +120,26 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_conv ON chat_messages(conversation_
 """
 
 
-def get_conn() -> sqlite3.Connection:
+@contextmanager
+def get_conn() -> Iterator[sqlite3.Connection]:
+    """A connection scoped to a ``with`` block: commits on success, rolls back
+    on error, and ALWAYS closes.
+
+    sqlite3's own connection context manager commits/rolls back but never
+    closes the connection, so ``with sqlite3.connect(...) as c`` leaks a handle
+    on every call. Wrapping it here makes ``with get_conn() as c`` correct.
+    """
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def init_db() -> None:
