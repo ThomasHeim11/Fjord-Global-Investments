@@ -124,26 +124,3 @@ npm run dev
 
 Open http://localhost:5173 and press **Run review**. The first run takes about
 a minute; after that, results are cached and instant.
-
-CLI alternative for the backend pipeline:
-
-```bash
-cd backend
-python3 -m app.cli ingest     # rebuild database + indexes from data/
-python3 -m app.cli digest     # run the review, print findings
-python3 -m app.cli reset      # wipe derived state and re-ingest
-```
-
----
-
-## The original case data
-
-- `data/subsidiaries.csv`: the primary subsidiary register (100 entities)
-- `data/board_updates.json`: ~30 board-change notifications. Messy by nature:
-  names do not always match the register, dates come in mixed formats, some
-  entries reference entities not in the CSV
-- `data/letters/`: 3 free-text PDF letters from external service providers
-
-The data is deliberately messy and incomplete. Part of the exercise is
-deciding what to trust, what to flag, and what to recommend; this README and
-the code comments document those decisions.

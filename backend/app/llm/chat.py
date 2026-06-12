@@ -8,6 +8,8 @@ Context assembly per question:
 
 The answer cites its sources so a lawyer can verify every claim.
 """
+from typing import Literal
+
 from pydantic import BaseModel
 
 from ..config import REFERENCE_DATE
@@ -36,16 +38,28 @@ Rules:
   normal, not an issue.
 - For each entity you include, say in a few words WHY it qualifies
   (e.g. "FGI-079: annual filing overdue since 2026-03").
-- Never list the same entity twice.
+- Never list the same entity twice, and never mention entities that have
+  nothing wrong ("no issues found" entries do not belong in the answer).
+- Trust the date annotations in the register context (EXPIRED / expiring in
+  n days) — never judge dates yourself. A date with no annotation is healthy
+  and is NOT an issue.
+- An entity named in a letter or notification but absent from the register
+  still belongs in the answer when it meets the question's criterion — say
+  it is not in the register.
+- Format the answer with one entity per line, separated by newline characters:
+  "Name (ID): the issue in a few words."
 - If the context doesn't contain the answer, say so plainly.
 - When sources disagree (e.g. a letter vs the register), present both sides.
 - Be concise and concrete: name entity IDs, dates and jurisdictions.
-- List the sources you actually used."""
+- List the sources you actually used. Cite findings by the entity or issue
+  they concern (e.g. "mandate expired: FGI-067"), letters by filename,
+  register sources by entity IDs. Never cite internal numbers."""
 
 
 class Source(BaseModel):
-    kind: str      # 'register' | 'letter' | 'board_update' | 'finding'
-    ref: str       # entity_id, filename, or update/finding id
+    kind: Literal["register", "letter", "board_update", "finding"]
+    ref: str       # register: entity IDs; letter: filename; board_update:
+                   # entity name; finding: the entity/issue it concerns
     detail: str    # one line: what this source contributed
 
 
@@ -55,11 +69,30 @@ class ChatAnswer(BaseModel):
 
 
 def _register_context() -> str:
+    """Register lines with date arithmetic precomputed (same approach as the
+    review pipeline) so the model never judges 'soon'/'expired' itself."""
+    from datetime import date
+
+    today = date.fromisoformat(REFERENCE_DATE)
+
+    def _annotate(d: str | None) -> str:
+        # Annotate only when the date signals an issue — a label on healthy
+        # dates ("not soon") just tempts the model to narrate clean entities.
+        try:
+            days = (date.fromisoformat(d) - today).days
+        except (TypeError, ValueError):
+            return str(d)
+        if days < 0:
+            return f"{d} (EXPIRED {-days} days ago)"
+        if days <= 60:
+            return f"{d} (expiring in {days} days)"
+        return str(d)
+
     with get_conn() as conn:
         rows = conn.execute("SELECT * FROM entities ORDER BY entity_id").fetchall()
     return "\n".join(
         f"{r['entity_id']} | {r['entity_name']} | {r['jurisdiction']} | "
-        f"status={r['status']} | mandate={r['board_mandate_expiry']} | "
+        f"status={r['status']} | mandate={_annotate(r['board_mandate_expiry'])} | "
         f"filing={r['annual_filing_due']} ({r['annual_filing_status']}) | "
         f"parent={r['parent_entity_id']} | {r['asset_class']}"
         for r in rows
@@ -67,17 +100,20 @@ def _register_context() -> str:
 
 
 def _findings_context() -> str:
+    # Compact on purpose: titles only, no recommendations — keeps the chat
+    # request small enough to fit every fallback model's per-minute budget.
+    # No internal row ids: findings are identified by entity + title so the
+    # model cites them in human terms.
     with get_conn() as conn:
         rows = conn.execute(
-            """SELECT id, severity, category, entity_id, title, recommendation
+            """SELECT severity, category, entity_id, title
                FROM findings WHERE run_id = (SELECT MAX(id) FROM digest_runs)
                ORDER BY id"""
         ).fetchall()
     if not rows:
-        return "(no digest has been run yet)"
+        return "(no review has been run yet)"
     return "\n".join(
-        f"[finding {r['id']}] {r['severity']}/{r['category']} | {r['entity_id'] or '-'} | "
-        f"{r['title']}" + (f" | action: {r['recommendation']}" if r["recommendation"] else "")
+        f"- {r['severity']}/{r['category']} | {r['entity_id'] or '-'} | {r['title']}"
         for r in rows
     )
 
@@ -112,7 +148,9 @@ Answer the question above using only the context below. Cite the sources you use
 
     # No local fallback for chat — a small local model gives poor free-form
     # answers; better to return a clear "try again" than a garbage reply.
-    result: ChatAnswer = parse_structured(SYSTEM, prompt, ChatAnswer, max_tokens=2500,
+    # max_tokens kept modest: answers are short, and the request size
+    # (input + max_tokens) must fit the smaller models' per-minute budgets.
+    result: ChatAnswer = parse_structured(SYSTEM, prompt, ChatAnswer, max_tokens=1200,
                                           allow_local_fallback=False)
     return {
         "answer": result.answer,

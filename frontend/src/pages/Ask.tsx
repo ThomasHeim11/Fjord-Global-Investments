@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import { Link } from "react-router-dom";
 
 const BASE = "http://127.0.0.1:8000/api";
 
@@ -57,10 +56,18 @@ export function Ask() {
     }
   };
 
-  const sourceLink = (s: Source) =>
-    s.kind === "register" && s.ref.startsWith("FGI-")
-      ? <Link to={`/entities/${s.ref}`} className="badge info">{s.ref}</Link>
-      : <span className="badge neutral">{s.kind}:{s.ref}</span>;
+  // One compact, de-duplicated provenance line — the answer text already
+  // names the entities, so sources only say WHERE the information came from.
+  const sourceSummary = (sources: Source[]): string => {
+    const parts = new Set<string>();
+    for (const s of sources) {
+      if (s.kind === "register") parts.add("the register");
+      else if (s.kind === "letter") parts.add(s.ref.replace(/^letter:/i, ""));
+      else if (s.kind === "board_update") parts.add("board notifications");
+      else parts.add("review findings");
+    }
+    return [...parts].join(" · ");
+  };
 
   return (
     <div className="page" style={{ maxWidth: 860 }}>
@@ -86,12 +93,7 @@ export function Ask() {
               {m.content}
               {m.sources && m.sources.length > 0 && (
                 <div className="chat-sources">
-                  {m.sources.map((s, j) => (
-                    <div key={j} className="chat-source">
-                      {sourceLink(s)}
-                      <span className="muted"> {s.detail}</span>
-                    </div>
-                  ))}
+                  <span className="muted">Sources: {sourceSummary(m.sources)}</span>
                 </div>
               )}
             </div>
