@@ -23,9 +23,14 @@ from ..db import get_conn
 from .client import parse_structured
 
 # Small local models (Ollama/gemma) reliably handle only a handful of entities
-# per call; hosted models take the full batch. Adapt so the pipeline completes
-# on either backend.
-ENTITY_BATCH = 5 if LLM_PROVIDER == "ollama" else 25
+# per call. On hosted Groq we keep batches modest too, so each prompt fits the
+# per-minute token limit (TPM) of more models in the chain and rate-limits less.
+ENTITY_BATCH = 5 if LLM_PROVIDER == "ollama" else 12
+
+# These register-analysis prompts are large, so skip the low-TPM model in the
+# chain for them (it almost always 429s on a big prompt); the higher-TPM models
+# absorb the load instead.
+BIG_PROMPT_SKIP = {"llama-3.1-8b-instant"}
 
 TITLE_RULE = """
 Titles MUST be specific: name the entity (legal name when known) and the
@@ -190,7 +195,8 @@ def analyze() -> list[Finding]:
         batch = register[start:start + ENTITY_BATCH]
         lines = "\n".join(_annotate(r, valid_ids, today) for r in batch)
         prompt = f"{roster}\n\nENTITIES TO REVIEW ({len(batch)}):\n{lines}"
-        result = parse_structured(PER_ENTITY_SYSTEM, prompt, AnalysisResult, max_tokens=4000)
+        result = parse_structured(PER_ENTITY_SYSTEM, prompt, AnalysisResult,
+                                  max_tokens=4000, exclude_models=BIG_PROMPT_SKIP)
         findings += _to_findings(result, valid_ids, "analysis")
 
     # Pass 2 — cross-entity structure (compact projection of the full register)
@@ -201,7 +207,7 @@ def analyze() -> list[Finding]:
     )
     result = parse_structured(CROSS_ENTITY_SYSTEM,
                               f"FULL REGISTER ({len(register)} entities):\n{compact}",
-                              AnalysisResult, max_tokens=4000)
+                              AnalysisResult, max_tokens=4000, exclude_models=BIG_PROMPT_SKIP)
     findings += _to_findings(result, valid_ids, "analysis")
 
     # Pass 3 — notifications hygiene
@@ -213,7 +219,7 @@ def analyze() -> list[Finding]:
     names = "\n".join(f"{r['entity_id']} {r['entity_name']} ({r['status']})" for r in register)
     result = parse_structured(NOTIFICATIONS_SYSTEM,
                               f"REGISTER ENTITIES:\n{names}\n\nNOTIFICATIONS:\n{update_lines}",
-                              AnalysisResult, max_tokens=3000)
+                              AnalysisResult, max_tokens=3000, exclude_models=BIG_PROMPT_SKIP)
     findings += _to_findings(result, valid_ids, "analysis")
 
     return findings

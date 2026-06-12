@@ -202,13 +202,18 @@ def _model_chain(primary: str) -> list[str]:
     return [primary] + [m for m in GROQ_FALLBACK_MODELS if m != primary]
 
 
-def _call_groq(system, prompt, output_model, max_tokens, primary_model) -> BaseModel:
+def _call_groq(system, prompt, output_model, max_tokens, primary_model,
+               exclude_models=None) -> BaseModel:
     """Try the Groq model chain, falling through whenever a model can't do the
     job (out of quota, or won't produce valid JSON). When the WHOLE chain is
     momentarily rate-limited (the per-minute limit, not the daily budget), wait
-    the time Groq suggests and retry the chain rather than giving up."""
+    the time Groq suggests and retry the chain rather than giving up.
+
+    exclude_models drops specific models from the chain (e.g. a low-TPM model
+    that would 429 on a large prompt anyway)."""
     client = _groq_client()
-    chain = _model_chain(primary_model)
+    skip = exclude_models or set()
+    chain = [m for m in _model_chain(primary_model) if m not in skip] or _model_chain(primary_model)
     last_exc: Exception | None = None
 
     for round_i in range(max(1, GROQ_RETRY_ROUNDS)):
@@ -269,13 +274,15 @@ def _call_anthropic(system, prompt, output_model, max_tokens) -> BaseModel:
 
 def parse_structured(system: str, prompt: str, output_model: type[BaseModel],
                      max_tokens: int = 16000, model: str | None = None,
-                     allow_local_fallback: bool = True) -> BaseModel:
+                     allow_local_fallback: bool = True,
+                     exclude_models: set[str] | None = None) -> BaseModel:
     """Structured-output call with caching and cross-backend fallback. Returns
     a validated pydantic object. `model` sets the preferred Groq model for this
     call; it still falls through the chain (and to local Ollama) if needed.
     Set `allow_local_fallback=False` for tasks a small local model handles
     poorly (e.g. free-form chat) — they raise LLMQuotaExhausted instead of
-    returning a low-quality local answer."""
+    returning a low-quality local answer. `exclude_models` drops Groq models
+    from the fallback chain for this call (e.g. a low-TPM model on a big prompt)."""
     if LLM_PROVIDER == "ollama":
         effective_model = OLLAMA_MODEL
     elif LLM_PROVIDER == "groq":
@@ -297,7 +304,8 @@ def parse_structured(system: str, prompt: str, output_model: type[BaseModel],
         result = _call_ollama(system, prompt, output_model, max_tokens)
     elif LLM_PROVIDER == "groq":
         try:
-            result = _call_groq(system, prompt, output_model, max_tokens, effective_model)
+            result = _call_groq(system, prompt, output_model, max_tokens, effective_model,
+                                exclude_models=exclude_models)
         except (LLMQuotaExhausted, RuntimeError) as exc:
             # Last resort: local, unlimited Ollama. If it isn't running, surface
             # the original Groq exhaustion rather than a connection error.

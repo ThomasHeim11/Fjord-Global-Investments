@@ -1,48 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "../api";
 import { FindingCard } from "../components/FindingCard";
 import { Hero } from "../components/Hero";
-import { formatDate } from "../format";
+import { formatDate, formatTime } from "../format";
 import { CATEGORY_LABELS, SEVERITY_LABELS } from "../labels";
-import type { DigestResponse, Severity } from "../types";
+import { useReview } from "../ReviewContext";
+import type { Severity } from "../types";
 
 const SEVERITIES: Severity[] = ["critical", "warning", "info"];
 const PAGE_SIZE = 12;
 
 export function Dashboard() {
-  const [digest, setDigest] = useState<DigestResponse | null>(null);
-  const [running, setRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  // The run lives at app level, so it keeps going if you navigate away.
+  const { digest, running, error, notice, runReview } = useReview();
   const [severityFilter, setSeverityFilter] = useState<Severity | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
-  const load = () => api.getDigest().then(setDigest).catch((e) => setError(String(e)));
-  useEffect(() => { load(); }, []);
   useEffect(() => { setPage(1); }, [severityFilter, categoryFilter]);
-
-  // One button: run a genuine live re-scan first. If the AI is rate-limited,
-  // fall back to replaying the last cached scan so a result always appears.
-  const runDigest = async () => {
-    setRunning(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await api.triggerDigest(true);   // live re-scan
-      await load();
-    } catch {
-      try {
-        await api.triggerDigest(false); // fall back to the cached scan
-        await load();
-        setNotice("The live scan was rate-limited, so this shows your last cached review. Try again in a moment for a fresh scan.");
-      } catch (e2) {
-        setError(String(e2));
-      }
-    } finally {
-      setRunning(false);
-    }
-  };
 
   const findings = digest?.findings ?? [];
   const categories = useMemo(() => [...new Set(findings.map((f) => f.category))], [findings]);
@@ -73,11 +47,6 @@ export function Dashboard() {
 
   return (
     <>
-      {running && (
-        <div className="progress-top" role="progressbar" aria-label="Reviewing">
-          <span />
-        </div>
-      )}
       <Hero />
 
       <div className="review-bar">
@@ -86,7 +55,12 @@ export function Dashboard() {
             {run ? (
               <>
                 <span className="review-bar-label">Last reviewed</span>
-                <span className="review-bar-value">{formatDate(run.created_at)}</span>
+                <span className="review-bar-value">
+                  {formatDate(run.created_at)}
+                  {formatTime(run.created_at) && (
+                    <span className="review-bar-time"> · {formatTime(run.created_at)}</span>
+                  )}
+                </span>
               </>
             ) : (
               <span className="review-bar-label">No review run yet</span>
@@ -94,7 +68,7 @@ export function Dashboard() {
           </div>
           <button
             className="run-btn"
-            onClick={runDigest}
+            onClick={runReview}
             disabled={running}
             title="Re-reads your register, notifications and letters, ranks every issue by risk level and recommends an action."
           >

@@ -22,6 +22,33 @@ def test_model_chain_puts_primary_first_without_duplicates():
     assert set(chain) >= set(client.GROQ_FALLBACK_MODELS)
 
 
+def test_excluded_model_is_dropped_from_the_chain(db, monkeypatch):
+    # When the primary rate-limits, the chain should advance past the excluded
+    # model to the next one, never trying the excluded model.
+    monkeypatch.setattr(client, "LLM_PROVIDER", "groq")
+    tried: list[str] = []
+
+    class _Fake(BaseModel):
+        value: str
+
+    def fake_chat_json(_client, model, system, prompt, output_model, max_tokens):
+        tried.append(model)
+        if model == client.GROQ_MODEL:
+            raise RuntimeError("Error code: 429 rate_limit_exceeded")  # force fall-through
+        return output_model(value="ok")
+
+    monkeypatch.setattr(client, "_chat_json", fake_chat_json)
+    monkeypatch.setattr(client, "_groq_client", lambda: object())
+    monkeypatch.setattr(client, "GROQ_MIN_INTERVAL", 0)  # no real sleep in tests
+
+    client.set_bypass_cache(True)  # skip cache so it actually calls
+    client.parse_structured("s", "p", _Fake, exclude_models={"llama-3.1-8b-instant"})
+    client.set_bypass_cache(False)
+
+    assert "llama-3.1-8b-instant" not in tried
+    assert "llama-3.3-70b-versatile" in tried  # the next model after the skipped one
+
+
 def test_rate_limit_detection():
     assert client._is_rate_limit(Exception("Error code: 429 rate_limit_exceeded"))
     assert not client._is_rate_limit(Exception("some other error"))
@@ -61,7 +88,7 @@ def test_parse_structured_caches_then_replays(db, monkeypatch):
     monkeypatch.setattr(client, "LLM_PROVIDER", "groq")
     calls = {"n": 0}
 
-    def fake_groq(system, prompt, output_model, max_tokens, primary_model):
+    def fake_groq(system, prompt, output_model, max_tokens, primary_model, exclude_models=None):
         calls["n"] += 1
         return output_model(value=f"answer-{calls['n']}")
 
@@ -82,7 +109,7 @@ def test_bypass_forces_live_call_but_still_writes_cache(db, monkeypatch):
     monkeypatch.setattr(client, "LLM_PROVIDER", "groq")
     calls = {"n": 0}
 
-    def fake_groq(system, prompt, output_model, max_tokens, primary_model):
+    def fake_groq(system, prompt, output_model, max_tokens, primary_model, exclude_models=None):
         calls["n"] += 1
         return output_model(value=f"answer-{calls['n']}")
 

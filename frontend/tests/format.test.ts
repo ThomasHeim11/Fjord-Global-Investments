@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanTitle, formatDate, sourceParts } from "../src/format";
+import { cleanTitle, formatDate, formatTime, sourceParts } from "../src/format";
 import type { Source } from "../src/chatStore";
 
 describe("formatDate", () => {
@@ -9,6 +9,17 @@ describe("formatDate", () => {
 
   it("falls back to the first 10 chars for unparseable input", () => {
     expect(formatDate("not-a-date-string")).toBe("not-a-date");
+  });
+});
+
+describe("formatTime", () => {
+  it("renders a HH:MM time for a valid timestamp", () => {
+    // exact value is timezone-dependent, so just assert the shape
+    expect(formatTime("2026-06-11 13:50:52")).toMatch(/^\d{2}:\d{2}$/);
+  });
+
+  it("returns empty string for unparseable input", () => {
+    expect(formatTime("nope")).toBe("");
   });
 });
 

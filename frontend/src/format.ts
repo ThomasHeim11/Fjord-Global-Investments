@@ -10,6 +10,14 @@ export function formatDate(raw: string): string {
     : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+// "2026-06-11 13:50:52" -> "13:50" (local time, "" if unparseable)
+export function formatTime(raw: string): string {
+  const d = new Date(raw.replace(" ", "T") + "Z");
+  return isNaN(d.getTime())
+    ? ""
+    : d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
+
 // Tidy an LLM-written finding title for display: drop the "letter says X,
 // register says Y" tail (the comparison box shows it better), "(N/A)"
 // placeholders, and the entity ID when the badge already shows it.

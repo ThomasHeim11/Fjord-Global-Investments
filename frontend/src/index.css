@@ -150,6 +150,10 @@ a:hover {
   color: var(--midnight);
   font-weight: 600;
 }
+.review-bar-time {
+  color: var(--ink-muted);
+  font-weight: 500;
+}
 .review-bar-dot {
   width: 4px;
   height: 4px;
