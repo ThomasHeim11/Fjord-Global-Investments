@@ -117,8 +117,9 @@ a:hover { color: var(--red); }
 .reviewing-card {
   display: flex; align-items: center; gap: 18px;
   background: var(--surface); border: 1px solid var(--line);
-  border-left: 4px solid var(--accent); border-radius: 6px;
+  border-left: 4px solid var(--accent); border-radius: 14px;
   padding: 22px 26px; margin: 24px 0;
+  box-shadow: 0 6px 20px rgba(0,21,56,0.06);
 }
 .reviewing-spinner {
   width: 28px; height: 28px; flex-shrink: 0;
@@ -145,16 +146,25 @@ a:hover { color: var(--red); }
 .run-btn:active { transform: translateY(0); }
 .run-btn:disabled { background: var(--ink-muted); cursor: wait; box-shadow: none; transform: none; }
 
-/* the two run actions sit together; "Run live" is a quiet secondary */
-.review-bar-actions { display: inline-flex; align-items: center; gap: 12px; }
-.run-live {
-  background: none; border: none; padding: 6px 4px;
-  color: var(--ink-muted); font-family: inherit; font-size: 13px; font-weight: 600;
-  cursor: pointer; white-space: nowrap; text-decoration: underline; text-underline-offset: 3px;
-  transition: color .12s;
+/* short, plain-language explanation of what the button does */
+.review-explainer {
+  max-width: 760px; margin: 4px 0 28px; color: var(--ink-soft);
+  font-size: 14.5px; line-height: 1.65;
 }
-.run-live:hover { color: var(--accent); }
-.run-live:disabled { color: var(--line); cursor: wait; text-decoration: none; }
+.review-explainer strong { color: var(--midnight); font-weight: 700; }
+
+/* friendly empty state, in the PortfolioGPT spirit */
+.review-empty {
+  text-align: center; padding: 56px 24px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 16px;
+}
+.review-empty-mark {
+  width: 44px; height: 44px; margin: 0 auto 16px; border-radius: 50%;
+  background: var(--midnight); color: #fff; display: flex; align-items: center;
+  justify-content: center; font-size: 20px;
+}
+.review-empty h2 { margin: 0 0 8px; font-size: 22px; font-weight: 800; color: var(--midnight); letter-spacing: -0.01em; }
+.review-empty p { margin: 0 auto; max-width: 48ch; color: var(--ink-soft); line-height: 1.6; }
 
 /* NBIM-style hero banner — full-bleed photo + headline number overlay */
 .hero-banner {
@@ -216,7 +226,7 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 6
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 12px;
   padding: 20px 24px;
 }
 .stat-hint {
@@ -224,14 +234,15 @@ h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 6
   font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
   color: var(--ink-muted); font-weight: 600;
 }
-.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 10px 0 28px; }
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 10px 0 28px; }
 .stat-row .card.stat {
-  background: var(--sky); border: 2px solid transparent; padding: 24px;
-  text-align: left; cursor: pointer; font-family: inherit; transition: border-color .12s;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px;
+  text-align: left; cursor: pointer; font-family: inherit;
+  transition: border-color .14s, transform .14s, box-shadow .14s;
 }
-.stat-row .card.stat:hover { border-color: var(--medium-gray); }
-.stat-row .card.stat.active { border-color: var(--midnight); background: var(--surface); }
-.stat .num { font-size: 52px; font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; color: var(--midnight); }
+.stat-row .card.stat:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,21,56,0.08); }
+.stat-row .card.stat.active { border-color: var(--midnight); box-shadow: 0 6px 20px rgba(0,21,56,0.10); }
+.stat .num { font-size: 48px; font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; color: var(--midnight); }
 .stat .label { color: var(--ink-soft); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; margin-top: 6px; }
 .stat.critical .num { color: var(--red); }
 .stat.warning .num { color: var(--sand-deep); }
@@ -424,11 +435,12 @@ td a { color: var(--accent); }
 .summary-box {
   background: var(--midnight);
   color: #f4f6fa;
-  border-radius: 6px;
-  padding: 28px 32px;
+  border-radius: 16px;
+  padding: 30px 34px;
   margin: 26px 0;
   font-size: 16.5px;
   line-height: 1.65;
+  box-shadow: 0 8px 28px rgba(0,21,56,0.16);
 }
 .summary-box h2 {
   margin: 0 0 12px;

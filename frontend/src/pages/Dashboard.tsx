@@ -28,11 +28,13 @@ export function Dashboard() {
   useEffect(() => { load(); }, []);
   useEffect(() => { setPage(1); }, [severityFilter, categoryFilter]);
 
-  const runDigest = async (fresh = false) => {
+  // One button. Results are cached, so a re-run is instant; and because we only
+  // refresh the view on success, a failed run keeps the last review on screen.
+  const runDigest = async () => {
     setRunning(true);
     setError(null);
     try {
-      await api.triggerDigest(fresh);
+      await api.triggerDigest();
       await load();
     } catch (e) {
       setError(String(e));
@@ -80,28 +82,32 @@ export function Dashboard() {
               <span className="review-bar-label">No review run yet</span>
             )}
           </div>
-          <div className="review-bar-actions">
-            <button className="run-btn" onClick={() => runDigest(false)} disabled={running}>
-              {running ? "Reviewing…" : run ? "Run review again" : "Run review"}
-            </button>
-            <button
-              className="run-live"
-              onClick={() => runDigest(true)}
-              disabled={running}
-              title="Ignore the cache and call the AI for real. Leaves the cached version untouched."
-            >
-              Run live
-            </button>
-          </div>
+          <button className="run-btn" onClick={runDigest} disabled={running}>
+            {running ? "Reviewing…" : run ? "Run review again" : "Run review"}
+          </button>
         </div>
       </div>
 
       <div className="page">
+        <p className="review-explainer">
+          <strong>Run review</strong> reads your register, board notifications and
+          agent letters, finds every governance issue, ranks each one
+          (Act now / Review soon / For awareness) and writes a recommended action.
+          Re-runs are cached, so they are instant and a failed run never loses
+          your last review.
+        </p>
+
         {error && <div className="card error-card">{error}</div>}
 
         {!run && !running && (
-          <div className="card empty">
-            Press <b>Run review</b> to analyse the register, board notifications and agent letters.
+          <div className="review-empty">
+            <div className="review-empty-mark">✦</div>
+            <h2>Ready when you are</h2>
+            <p>
+              Press <b>Run review</b> above to analyse the register, board
+              notifications and agent letters. The first run takes about a minute;
+              after that it is instant.
+            </p>
           </div>
         )}
         {running && (
