@@ -9,6 +9,7 @@ from ..rag import indexer
 
 
 def run_ingest() -> dict:
+    """Rebuild the database from /data and return per-source row counts."""
     db.init_db()
     stats = {}
     stats["entities"] = register.ingest()

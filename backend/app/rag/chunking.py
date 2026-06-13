@@ -8,6 +8,12 @@ MAX_CHARS = 1200
 
 
 def chunk_text(text: str) -> list[str]:
+    """Split text into MAX_CHARS-bounded chunks on paragraph boundaries.
+
+    Packs whole paragraphs together and carries one paragraph of overlap
+    between chunks so context isn't lost at boundaries. Falls back to
+    grouping lines when the text has no blank-line paragraph breaks.
+    """
     paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
     if not paragraphs:
         # PDFs sometimes extract without blank lines — fall back to line groups

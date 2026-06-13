@@ -10,6 +10,7 @@ _model = None
 
 
 def _get_model():
+    """Lazily load and cache the SentenceTransformer, so import stays cheap."""
     global _model
     if _model is None:
         from sentence_transformers import SentenceTransformer

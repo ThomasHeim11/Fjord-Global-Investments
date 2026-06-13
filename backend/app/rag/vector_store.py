@@ -11,6 +11,7 @@ from .embeddings import embed
 
 
 def build(chunk_ids: list[int], texts: list[str]) -> None:
+    """Embed texts and write a fresh FAISS index keyed by chunk_id to disk."""
     index = faiss.IndexIDMap(faiss.IndexFlatIP(EMBEDDING_DIM))
     if texts:
         vecs = embed(texts)

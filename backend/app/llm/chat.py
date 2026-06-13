@@ -87,6 +87,7 @@ def _register_context() -> str:
     today = date.fromisoformat(REFERENCE_DATE)
 
     def _annotate(d: str | None) -> str:
+        """Tag a date as expired or soon-expiring, leaving healthy dates bare."""
         # Annotate only when the date signals an issue — a label on healthy
         # dates ("not soon") just tempts the model to narrate clean entities.
         try:
@@ -111,6 +112,8 @@ def _register_context() -> str:
 
 
 def _findings_context() -> str:
+    """The latest run's findings as compact one-liners (severity, category, entity,
+    title) so answers can reference prior analysis without bloating the request."""
     # Compact on purpose: titles only, no recommendations — keeps the chat
     # request small enough to fit every fallback model's per-minute budget.
     # No internal row ids: findings are identified by entity + title so the
@@ -168,6 +171,8 @@ def _board_updates_context() -> str:
 
 
 def ask(question: str, history: list[dict] | None = None) -> dict:
+    """Answer a natural-language question over the register and documents, returning
+    the grounded answer with its cited sources and the retrieved excerpts."""
     retrieved = search(question, k=8)
     chunks_text = "\n\n".join(
         f"[{c.source_type}:{c.source_ref}] {c.text}" for c in retrieved

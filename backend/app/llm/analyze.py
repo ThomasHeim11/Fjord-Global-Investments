@@ -115,6 +115,8 @@ governance (other oddities).""" + TITLE_RULE
 
 
 def _to_findings(result: AnalysisResult, valid_ids: set[str], pass_name: str) -> list[Finding]:
+    """Convert raw LLM findings into Finding records, clamping the severity to a
+    known value and dropping entity_id references that aren't in the register."""
     return [
         Finding(
             category=f.category,
@@ -172,6 +174,8 @@ def _annotate(r, valid_ids: set[str], today) -> str:
 
 
 def analyze() -> list[Finding]:
+    """Run the three-pass register review (per-entity, cross-entity, notifications)
+    and return the combined findings."""
     from datetime import date
 
     with get_conn() as conn:

@@ -49,6 +49,8 @@ def _shortlist(raw: str, register: list) -> list:
 
 
 def resolve_all() -> int:
+    """Resolve every distinct board-update name to a register entity (or none) and
+    persist the result on each row; return the count of resolutions made."""
     with get_conn() as conn:
         register = conn.execute(
             "SELECT entity_id, entity_name, jurisdiction FROM entities ORDER BY entity_id"

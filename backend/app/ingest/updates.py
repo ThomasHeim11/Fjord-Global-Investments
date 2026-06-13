@@ -12,6 +12,10 @@ from ..utils.dates import to_iso
 
 
 def ingest() -> int:
+    """Rebuild the board_updates table from JSON, normalizing dates to ISO.
+
+    Returns the number of updates ingested.
+    """
     with open(BOARD_UPDATES_JSON, encoding="utf-8") as f:
         items = json.load(f)
 

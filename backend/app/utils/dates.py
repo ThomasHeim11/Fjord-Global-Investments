@@ -11,6 +11,7 @@ _FORMATS = ["%Y-%m-%d", "%m/%d/%Y", "%d %B %Y", "%d %b %Y"]
 
 
 def to_iso(raw) -> str | None:
+    """Parse a date in any known format to an ISO string, or None if unparseable."""
     # Coerce defensively: board_updates.json is messy and a date may arrive as
     # None or even a number, neither of which has .strip().
     raw = str(raw if raw is not None else "").strip()

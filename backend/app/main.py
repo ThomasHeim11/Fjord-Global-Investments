@@ -26,6 +26,7 @@ from .ingest import run_ingest
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    """Ensure the schema exists and, on a fresh database, build everything from /data once."""
     init_db()
     with get_conn() as conn:
         count = conn.execute("SELECT COUNT(*) AS n FROM entities").fetchone()["n"]
@@ -82,6 +83,7 @@ def cancel_digest() -> dict:
 
 @app.get("/api/digest")
 def get_digest() -> dict:
+    """Return the latest review run with its findings, or empty if none has run yet."""
     with get_conn() as conn:
         run = conn.execute(
             "SELECT * FROM digest_runs ORDER BY id DESC LIMIT 1"
@@ -112,6 +114,7 @@ def list_entities(
     filing_status: str | None = None,
     q: str | None = Query(None, description="substring match on name/id"),
 ) -> list[dict]:
+    """List register entities, narrowed by any supplied filter and an optional name/id substring."""
     sql = "SELECT * FROM entities WHERE 1=1"
     params: list = []
     for col, val in [("jurisdiction", jurisdiction), ("status", status),
@@ -129,6 +132,7 @@ def list_entities(
 
 @app.get("/api/entities/{entity_id}")
 def entity_detail(entity_id: str) -> dict:
+    """Return one entity with its resolved board updates, latest-run findings, and children."""
     with get_conn() as conn:
         entity = conn.execute(
             "SELECT * FROM entities WHERE entity_id = ?", (entity_id,)
@@ -197,12 +201,14 @@ def chat(req: ChatRequest) -> dict:
 
 @app.get("/api/chats")
 def list_chats() -> list[dict]:
+    """List persisted PortfolioGPT conversations, most recent first."""
     from . import chat_store
     return chat_store.list_conversations()
 
 
 @app.get("/api/chats/{conversation_id}")
 def get_chat(conversation_id: str) -> dict:
+    """Return one conversation with its full message history, or 404 if unknown."""
     from . import chat_store
     conv = chat_store.get_conversation(conversation_id)
     if not conv:
@@ -212,6 +218,7 @@ def get_chat(conversation_id: str) -> dict:
 
 @app.delete("/api/chats/{conversation_id}")
 def delete_chat(conversation_id: str) -> dict:
+    """Delete a conversation and its messages. Idempotent: unknown ids are a no-op."""
     from . import chat_store
     chat_store.delete_conversation(conversation_id)
     return {"deleted": True}
@@ -240,6 +247,7 @@ def letter_pdf(filename: str) -> FileResponse:
 
 @app.get("/api/search")
 def search(q: str, k: int = 8, mode: str = "hybrid") -> list[dict]:
+    """Run hybrid retrieval over letters and updates and return the top-k chunks (debug)."""
     from .rag.retriever import search as rag_search
     return [vars(r) for r in rag_search(q, k=k, mode=mode)]
 
@@ -248,6 +256,7 @@ def search(q: str, k: int = 8, mode: str = "hybrid") -> list[dict]:
 
 @app.get("/api/meta")
 def meta() -> dict:
+    """Return the distinct values powering the register's filter dropdowns."""
     with get_conn() as conn:
         return {
             "jurisdictions": [r[0] for r in conn.execute(

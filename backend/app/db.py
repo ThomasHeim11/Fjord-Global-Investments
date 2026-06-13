@@ -143,5 +143,6 @@ def get_conn() -> Iterator[sqlite3.Connection]:
 
 
 def init_db() -> None:
+    """Create every table and index if absent. Idempotent, safe to run on each startup."""
     with get_conn() as conn:
         conn.executescript(SCHEMA)

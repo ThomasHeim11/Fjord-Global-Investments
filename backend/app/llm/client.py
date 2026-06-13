@@ -56,6 +56,7 @@ _bypass_cache: ContextVar[bool] = ContextVar("llm_bypass_cache", default=False)
 
 
 def set_bypass_cache(value: bool) -> None:
+    """Toggle cache-read bypass for the current context so a run does live LLM calls."""
     _bypass_cache.set(value)
 
 
@@ -70,6 +71,7 @@ class LLMQuotaExhausted(RuntimeError):
 # --- clients ----------------------------------------------------------------
 
 def _groq_client():
+    """Lazily build and cache the Groq client, requiring GROQ_API_KEY."""
     global _groq
     if _groq is None:
         if not GROQ_API_KEY:
@@ -82,6 +84,7 @@ def _groq_client():
 
 
 def _ollama_client():
+    """Lazily build and cache the local Ollama client via its OpenAI-compatible API."""
     global _ollama
     if _ollama is None:
         from openai import OpenAI  # Ollama exposes an OpenAI-compatible API
@@ -90,6 +93,7 @@ def _ollama_client():
 
 
 def _anthropic_client():
+    """Lazily build and cache the Anthropic client, requiring ANTHROPIC_API_KEY."""
     global _anthropic
     if _anthropic is None:
         if not os.environ.get("ANTHROPIC_API_KEY"):
@@ -102,6 +106,7 @@ def _anthropic_client():
 # --- helpers ----------------------------------------------------------------
 
 def _cache_key(model: str, system: str, prompt: str, schema_name: str) -> str:
+    """Deterministic SHA-256 cache key over the model, prompts and schema name."""
     payload = json.dumps(
         {"model": model, "system": system, "prompt": prompt, "schema": schema_name},
         sort_keys=True,
@@ -110,6 +115,7 @@ def _cache_key(model: str, system: str, prompt: str, schema_name: str) -> str:
 
 
 def _is_rate_limit(exc: Exception) -> bool:
+    """True if the exception looks like a 429 / rate-limit from the provider."""
     name = type(exc).__name__
     return "RateLimit" in name or "429" in str(exc) or "rate_limit" in str(exc).lower()
 
@@ -209,6 +215,7 @@ def _chat_json(client, model: str, system: str, prompt: str,
 
 
 def _model_chain(primary: str) -> list[str]:
+    """The fallback order: the primary model first, then the rest of the chain."""
     return [primary] + [m for m in GROQ_FALLBACK_MODELS if m != primary]
 
 
@@ -269,10 +276,12 @@ def _call_groq(system, prompt, output_model, max_tokens, primary_model,
 
 
 def _call_ollama(system, prompt, output_model, max_tokens) -> BaseModel:
+    """Run one structured-output call against the local Ollama model."""
     return _chat_json(_ollama_client(), OLLAMA_MODEL, system, prompt, output_model, max_tokens)
 
 
 def _call_anthropic(system, prompt, output_model, max_tokens) -> BaseModel:
+    """Run one call against Anthropic using its native structured-output parser."""
     response = _anthropic_client().messages.parse(
         model=ANTHROPIC_MODEL,
         max_tokens=max_tokens,

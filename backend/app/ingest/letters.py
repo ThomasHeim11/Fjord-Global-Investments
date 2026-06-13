@@ -10,11 +10,13 @@ from ..db import get_conn
 
 
 def extract_text(path) -> str:
+    """Extract all page text from a PDF, joined by newlines, locally via pypdf."""
     reader = PdfReader(str(path))
     return "\n".join(page.extract_text() or "" for page in reader.pages).strip()
 
 
 def ingest() -> int:
+    """Rebuild the documents table from letter PDFs and return the count."""
     pdfs = sorted(LETTERS_DIR.glob("*.pdf"))
     with get_conn() as conn:
         conn.execute("DELETE FROM chunks")  # chunks reference documents

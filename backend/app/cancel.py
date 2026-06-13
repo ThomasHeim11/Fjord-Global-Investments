@@ -17,18 +17,22 @@ class ReviewCancelled(Exception):
 
 
 def request_cancel() -> None:
+    """Signal the running review to stop at its next checkpoint."""
     _event.set()
 
 
 def clear() -> None:
+    """Reset the flag before starting a run, so a stale cancel doesn't abort it."""
     _event.clear()
 
 
 def is_cancelled() -> bool:
+    """Return whether cancellation has been requested."""
     return _event.is_set()
 
 
 def raise_if_cancelled() -> None:
+    """Raise ReviewCancelled if a stop was requested, otherwise do nothing."""
     if _event.is_set():
         raise ReviewCancelled()
 

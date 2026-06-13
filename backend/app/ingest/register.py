@@ -30,6 +30,7 @@ def _to_float(value) -> float | None:
 
 
 def ingest() -> int:
+    """Rebuild the entities table from subsidiaries.csv and return the row count."""
     with open(SUBSIDIARIES_CSV, newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
 

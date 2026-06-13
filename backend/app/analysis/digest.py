@@ -44,6 +44,7 @@ def _unresolved_update_findings() -> list[Finding]:
 
 
 def _norm(s: str | None) -> str:
+    """Lower-case and collapse whitespace so strings compare regardless of casing or spacing."""
     return " ".join((s or "").lower().split())
 
 
@@ -97,10 +98,12 @@ def _dedup(findings: list[Finding]) -> list[Finding]:
 
 
 def _log(msg: str) -> None:
+    """Emit a flushed, prefixed progress line for the digest pipeline."""
     print(f"[digest] {msg}", flush=True)
 
 
 def run_digest() -> dict:
+    """Run the full 5-step LLM digest, persist a run with its findings, and return its summary stats."""
     from ..llm.analyze import analyze
     from ..llm.recommend import recommend
     from ..llm.reconcile import reconcile_letters

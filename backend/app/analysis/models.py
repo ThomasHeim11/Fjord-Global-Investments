@@ -6,6 +6,7 @@ SEVERITY_ORDER = {"critical": 0, "warning": 1, "info": 2}
 
 @dataclass
 class Finding:
+    """A single issue surfaced by an analysis step, ready to persist as a finding."""
     category: str             # data_integrity | mandate | filing | status | governance | conflict | unknown_entity
     severity: str             # critical | warning | info
     title: str

@@ -11,6 +11,11 @@ from .chunking import chunk_text
 
 
 def build_indexes() -> int:
+    """Rebuild the chunks table and both search indexes from scratch.
+
+    Chunks letters, turns each board update into one chunk, syncs the FTS5
+    (BM25) index, and rebuilds the FAISS vector index. Returns the chunk count.
+    """
     with get_conn() as conn:
         conn.execute("DELETE FROM chunks")
         conn.execute("INSERT INTO chunks_fts(chunks_fts) VALUES('delete-all')")

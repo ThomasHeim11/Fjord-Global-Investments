@@ -130,6 +130,8 @@ class ConflictResult(BaseModel):
 
 
 def reconcile_letters() -> list[Finding]:
+    """Reconcile every agent letter against the register, running the existence and
+    value-conflict passes per letter and returning all resulting findings."""
     with get_conn() as conn:
         letters = conn.execute(
             "SELECT id, filename, title, full_text FROM documents WHERE source_type = 'letter'"

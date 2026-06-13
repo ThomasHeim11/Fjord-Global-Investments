@@ -1,6 +1,7 @@
 """Central configuration. Paths are resolved relative to the repo layout so the
 app runs the same way from any working directory."""
 import os
+from datetime import date
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -56,7 +57,7 @@ GROQ_REASONING_MODEL = os.environ.get("GROQ_REASONING_MODEL", "openai/gpt-oss-12
 # doesn't fire a burst that trips every model at once, and when the whole
 # chain IS momentarily limited, wait the suggested time and retry instead of
 # giving up.
-GROQ_MIN_INTERVAL = float(os.environ.get("GROQ_MIN_INTERVAL", "6"))     # seconds between calls (wider = fewer per-minute rate limits, slower run)
+GROQ_MIN_INTERVAL = float(os.environ.get("GROQ_MIN_INTERVAL", "4"))     # seconds between calls (wider = fewer per-minute rate limits, slower run)
 GROQ_RETRY_ROUNDS = int(os.environ.get("GROQ_RETRY_ROUNDS", "4"))       # chain passes before giving up
 GROQ_MAX_BACKOFF = float(os.environ.get("GROQ_MAX_BACKOFF", "30"))      # cap on a single wait
 
@@ -75,8 +76,9 @@ LLM_MODEL = {
     "ollama": OLLAMA_MODEL,
 }.get(LLM_PROVIDER, ANTHROPIC_MODEL)
 
-# "Today" for the demo dataset. The case data is built around early June 2026;
-# pinning it makes expiry/overdue calculations reproducible at the interview.
-REFERENCE_DATE = "2026-06-11"
+# "Today" for expiry/overdue calculations. Defaults to the real current date
+# (production-correct). Set REFERENCE_DATE to pin it for reproducible tests or a
+# frozen-snapshot demo (the case data is built around early June 2026).
+REFERENCE_DATE = os.environ.get("REFERENCE_DATE") or date.today().isoformat()
 
 STORAGE_DIR.mkdir(exist_ok=True)

@@ -25,6 +25,11 @@ class RetrievedChunk:
 
 
 def _rrf(rankings: dict[str, list[int]]) -> dict[int, tuple[float, list[str]]]:
+    """Fuse per-retriever ranked id lists with Reciprocal Rank Fusion.
+
+    Each chunk scores 1 / (RRF_K + rank) per ranking it appears in. Returns
+    chunk_id -> (fused_score, names of retrievers that surfaced it).
+    """
     fused: dict[int, tuple[float, list[str]]] = {}
     for name, ids in rankings.items():
         for rank, chunk_id in enumerate(ids):
@@ -34,6 +39,11 @@ def _rrf(rankings: dict[str, list[int]]) -> dict[int, tuple[float, list[str]]]:
 
 
 def search(query: str, k: int = 8, mode: str = "hybrid") -> list[RetrievedChunk]:
+    """Retrieve the top-k chunks for a query, hydrated with text and metadata.
+
+    Runs BM25 and/or FAISS per mode ('hybrid', 'bm25', 'vector'), fuses the
+    rankings with RRF, and loads the winning chunks from SQLite.
+    """
     candidates = max(k * 3, 20)
     rankings: dict[str, list[int]] = {}
     if mode in ("hybrid", "bm25"):

@@ -12,11 +12,13 @@ from .db import get_conn
 
 
 def _title_from(question: str) -> str:
+    """Derive a conversation title: the question collapsed to single spaces and truncated."""
     t = " ".join(question.split())
     return f"{t[:56]}…" if len(t) > 56 else t
 
 
 def list_conversations() -> list[dict]:
+    """Return all conversations (without messages), most recently updated first."""
     with get_conn() as conn:
         rows = conn.execute(
             "SELECT id, title, created_at, updated_at FROM chat_conversations "
@@ -26,6 +28,7 @@ def list_conversations() -> list[dict]:
 
 
 def get_messages(conversation_id: str) -> list[dict]:
+    """Return a conversation's messages in order, decoding each assistant's cited sources."""
     with get_conn() as conn:
         rows = conn.execute(
             "SELECT role, content, sources_json FROM chat_messages "
@@ -42,6 +45,7 @@ def get_messages(conversation_id: str) -> list[dict]:
 
 
 def get_conversation(conversation_id: str) -> dict | None:
+    """Return a conversation with its messages, or None if it doesn't exist."""
     with get_conn() as conn:
         row = conn.execute(
             "SELECT id, title, created_at, updated_at FROM chat_conversations WHERE id = ?",
@@ -53,6 +57,7 @@ def get_conversation(conversation_id: str) -> dict | None:
 
 
 def _exists(conversation_id: str) -> bool:
+    """Return whether a conversation with this id is stored."""
     with get_conn() as conn:
         return conn.execute(
             "SELECT 1 FROM chat_conversations WHERE id = ?", (conversation_id,)
@@ -75,6 +80,7 @@ def ensure_conversation(conversation_id: str | None, first_question: str) -> str
 
 def add_message(conversation_id: str, role: str, content: str,
                 sources: list | None = None) -> None:
+    """Append a message to a conversation and bump its updated_at so it sorts to the top."""
     with get_conn() as conn:
         conn.execute(
             "INSERT INTO chat_messages (conversation_id, role, content, sources_json) "
@@ -88,6 +94,7 @@ def add_message(conversation_id: str, role: str, content: str,
 
 
 def delete_conversation(conversation_id: str) -> None:
+    """Delete a conversation and all of its messages."""
     with get_conn() as conn:
         conn.execute("DELETE FROM chat_messages WHERE conversation_id = ?", (conversation_id,))
         conn.execute("DELETE FROM chat_conversations WHERE id = ?", (conversation_id,))
