@@ -25,7 +25,7 @@ from .client import parse_structured
 # Small local models (Ollama/gemma) reliably handle only a handful of entities
 # per call. On hosted Groq we keep batches modest too, so each prompt fits the
 # per-minute token limit (TPM) of more models in the chain and rate-limits less.
-ENTITY_BATCH = 5 if LLM_PROVIDER == "ollama" else 12
+ENTITY_BATCH = 5 if LLM_PROVIDER == "ollama" else 18
 
 # These register-analysis prompts are large, so skip the low-TPM model in the
 # chain for them (it almost always 429s on a big prompt); the higher-TPM models

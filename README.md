@@ -6,8 +6,6 @@ can't currently see, and recommends an action for each one.
 
 ## What the application does
 
-Three pages, three jobs:
-
 **Review** is the heart of the tool. One click, and the AI reads all three
 sources and lists every governance issue it found, each ranked by risk level
 (High / Medium / Low), with a plain explanation and a recommended action.

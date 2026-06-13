@@ -36,7 +36,7 @@ Refer to the fund as Fjord Global Investments or FGI, never the generic
 "sovereign wealth fund". Keep it tight — it is read aloud to the General Counsel."""
 
 
-BATCH_SIZE = 20
+BATCH_SIZE = 30
 
 
 class Recommendation(BaseModel):
