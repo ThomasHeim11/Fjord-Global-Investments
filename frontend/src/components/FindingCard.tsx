@@ -1,3 +1,8 @@
+/**
+ * Renders a single review finding: severity/category badges, the source
+ * comparison (letter vs register), recommendation, and a button to open the
+ * cited letter in the in-app PDF viewer with the quoted line highlighted.
+ */
 import { lazy, Suspense, useState } from "react";
 import { Link } from "react-router-dom";
 import { cleanTitle } from "../format";
@@ -10,14 +15,17 @@ const PdfViewer = lazy(() => import("./PdfViewer").then((m) => ({ default: m.Pdf
 
 const API = "http://127.0.0.1:8000/api";
 
-// The text to highlight in the PDF. For an unknown-entity finding the quote is
-// wrapped ("names 'FGI …'"); pull the inner name so the search matches the
-// letter. Otherwise the quoted value (a date, a board list) is already verbatim.
+/**
+ * Returns the text to highlight in the PDF. For an unknown-entity finding the
+ * quote is wrapped ("names 'FGI …'"), so pull the inner name to match the
+ * letter; otherwise the quoted value (a date, a board list) is already verbatim.
+ */
 function pdfSearchTerm(letterSays: string): string {
   const m = letterSays.match(/['"]([^'"]+)['"]/);
   return m ? m[1] : letterSays;
 }
 
+/** Card UI for one Finding, with optional source comparison and PDF evidence link. */
 export function FindingCard({ finding }: { finding: Finding }) {
   const ev = finding.evidence ?? {};
   const [showPdf, setShowPdf] = useState(false);

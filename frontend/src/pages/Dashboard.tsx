@@ -1,3 +1,7 @@
+/**
+ * Review page: runs the portfolio review and presents the resulting findings,
+ * ranked by severity, with severity/category filters and pagination.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { FindingCard } from "../components/FindingCard";
 import { Hero } from "../components/Hero";
@@ -9,6 +13,7 @@ import type { Severity } from "../types";
 const SEVERITIES: Severity[] = ["critical", "warning", "info"];
 const PAGE_SIZE = 12;
 
+/** The review page: the Run/Stop control, the findings list and its filters. */
 export function Dashboard() {
   // The run lives at app level, so it keeps going if you navigate away.
   const { digest, running, error, notice, runReview, stopReview } = useReview();
@@ -16,6 +21,7 @@ export function Dashboard() {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
+  // changing a filter resets to the first page so results stay in view
   useEffect(() => { setPage(1); }, [severityFilter, categoryFilter]);
 
   const findings = digest?.findings ?? [];
@@ -66,6 +72,7 @@ export function Dashboard() {
               <span className="review-bar-label">No review run yet</span>
             )}
           </div>
+          {/* Run/Stop toggle: while a review is in flight the button stops waiting on it. */}
           {running ? (
             <button className="run-btn stop" onClick={stopReview} title="Stop waiting for this review">
               Stop

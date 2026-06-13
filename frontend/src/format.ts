@@ -1,8 +1,10 @@
-// Pure display helpers, extracted from the components so they can be unit
-// tested in isolation (no DOM, no router, no network).
+/**
+ * Pure display helpers, extracted from the components so they can be unit
+ * tested in isolation (no DOM, no router, no network).
+ */
 import type { Source } from "./chatStore";
 
-// "2026-06-11 13:50:52" -> "11 Jun 2026"
+/** Formats a "YYYY-MM-DD HH:MM:SS" timestamp as "11 Jun 2026"; falls back to the date slice if unparseable. */
 export function formatDate(raw: string): string {
   const d = new Date(raw.replace(" ", "T") + "Z");
   return isNaN(d.getTime())
@@ -10,7 +12,7 @@ export function formatDate(raw: string): string {
     : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-// "2026-06-11 13:50:52" -> "13:50" (local time, "" if unparseable)
+/** Formats the same timestamp as local "13:50"; returns "" if unparseable. */
 export function formatTime(raw: string): string {
   const d = new Date(raw.replace(" ", "T") + "Z");
   return isNaN(d.getTime())
@@ -18,9 +20,11 @@ export function formatTime(raw: string): string {
     : d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
-// Tidy an LLM-written finding title for display: drop the "letter says X,
-// register says Y" tail (the comparison box shows it better), "(N/A)"
-// placeholders, and the entity ID when the badge already shows it.
+/**
+ * Tidies an LLM-written finding title for display: drops the "letter says X,
+ * register says Y" tail (the comparison box shows it better), "(N/A)"
+ * placeholders, and the entity ID when the badge already shows it.
+ */
 export function cleanTitle(raw: string, entityId: string | null): string {
   let t = raw.split("—")[0];
   t = t.replace(/:?\s*\(N\/A\)/gi, "");
@@ -28,14 +32,17 @@ export function cleanTitle(raw: string, entityId: string | null): string {
   return t.replace(/\s+/g, " ").trim().replace(/[:\-–—·,]\s*$/, "");
 }
 
+/** A display-ready cited source: a label, plus the letter filename when openable. */
 export interface SourcePart {
   label: string;
   file?: string; // set for letter sources, so the UI can open the PDF
 }
 
-// Collapse cited sources to a de-duplicated, ordered list. Letter sources carry
-// the filename so the UI can render them as a link to the in-app PDF viewer;
-// the rest are plain provenance labels.
+/**
+ * Collapses cited sources to a de-duplicated, ordered list. Letter sources
+ * carry the filename so the UI can link to the in-app PDF viewer; the rest are
+ * plain provenance labels.
+ */
 export function sourceParts(sources: Source[]): SourcePart[] {
   const seen = new Set<string>();
   const parts: SourcePart[] = [];

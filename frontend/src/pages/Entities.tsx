@@ -1,3 +1,7 @@
+/**
+ * Register browser: a searchable, filterable, sortable table of all
+ * subsidiary entities. Rows link through to the single-entity drilldown.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
@@ -7,6 +11,7 @@ type SortKey = keyof Pick<Entity,
   "entity_id" | "entity_name" | "jurisdiction" | "status" |
   "annual_filing_status" | "board_mandate_expiry" | "asset_class">;
 
+// Maps a filing/status value to its badge variant (colour) in the table.
 const FILING_BADGE: Record<string, string> = {
   Filed: "ok", Pending: "info", Overdue: "critical", Unknown: "warning",
 };
@@ -14,6 +19,7 @@ const STATUS_BADGE: Record<string, string> = {
   Active: "ok", Dissolved: "neutral", "In liquidation": "warning", Dormant: "neutral",
 };
 
+/** The register browser: search box, dropdown filters and the sortable entity table. */
 export function Entities() {
   const navigate = useNavigate();
   const [entities, setEntities] = useState<Entity[]>([]);
@@ -22,13 +28,16 @@ export function Entities() {
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "entity_id", dir: 1 });
 
+  // load the filter dropdown options once
   useEffect(() => { api.getMeta().then(setMeta); }, []);
+  // re-query the server whenever the filters or search text change
   useEffect(() => {
     const params = { ...filters };
     if (q) params.q = q;
     api.getEntities(params).then(setEntities);
   }, [filters, q]);
 
+  // client-side sort of the server's result set by the active column and direction
   const sorted = useMemo(() => {
     return [...entities].sort((a, b) => {
       const va = a[sort.key] ?? "";
@@ -37,9 +46,11 @@ export function Entities() {
     });
   }, [entities, sort]);
 
+  // click a column: sort by it, or flip direction if it is already the sort key
   const toggleSort = (key: SortKey) =>
     setSort((s) => ({ key, dir: s.key === key ? (s.dir === 1 ? -1 : 1) : 1 }));
 
+  // set or clear a single filter; an empty value removes the key entirely
   const setFilter = (key: string, value: string) =>
     setFilters((f) => {
       const next = { ...f };

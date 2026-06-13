@@ -1,14 +1,20 @@
+/**
+ * Single-entity drilldown: the full record for one subsidiary, plus its
+ * findings, board-change notifications and direct subsidiaries.
+ */
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api";
 import { FindingCard } from "../components/FindingCard";
 import type { EntityDetail as Detail } from "../types";
 
+/** The single-entity drilldown page, keyed by the `:id` route param. */
 export function EntityDetail() {
   const { id } = useParams<{ id: string }>();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // fetch this entity's full detail whenever the route id changes
   useEffect(() => {
     if (id) api.getEntity(id).then(setDetail).catch((e) => setError(String(e)));
   }, [id]);

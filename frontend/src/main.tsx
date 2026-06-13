@@ -1,3 +1,4 @@
+/** App entry point: mounts the root App component into the DOM under StrictMode. */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

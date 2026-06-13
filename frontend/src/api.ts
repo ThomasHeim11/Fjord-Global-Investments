@@ -1,3 +1,8 @@
+/**
+ * Backend API client: typed fetch wrappers for the digest/review, entity
+ * register, and PortfolioGPT chat endpoints. Centralizes the base URL and
+ * error handling.
+ */
 import type { ChatSummary, Conversation, Source } from "./chatStore";
 import type { DigestResponse, Entity, EntityDetail, Meta } from "./types";
 
@@ -9,6 +14,7 @@ interface ChatReply {
   sources: Source[];
 }
 
+/** GET a JSON resource, throwing on non-2xx responses. */
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`);
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);

@@ -1,5 +1,7 @@
-// PortfolioGPT chat types. History is persisted server-side (see backend
-// chat_store.py); the client just renders what the API returns.
+/**
+ * PortfolioGPT chat types. History is persisted server-side (see backend
+ * chat_store.py); the client just renders what the API returns.
+ */
 
 export interface Source {
   kind: string;

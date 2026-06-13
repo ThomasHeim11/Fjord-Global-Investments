@@ -1,3 +1,8 @@
+/**
+ * App-level review context: runs and tracks the portfolio scan ("review") so
+ * its progress and result persist across navigation. Exposes runReview,
+ * stopReview, and the latest digest/error/notice via the useReview hook.
+ */
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "./api";
 import type { DigestResponse } from "./types";
@@ -13,8 +18,10 @@ interface ReviewState {
 
 const ReviewCtx = createContext<ReviewState | null>(null);
 
-// Holds the review run at app level so it keeps going (and keeps showing
-// progress) even if you navigate to Register or PortfolioGPT while it works.
+/**
+ * Holds the review run at app level so it keeps going (and keeps showing
+ * progress) even if you navigate to Register or PortfolioGPT while it works.
+ */
 export function ReviewProvider({ children }: { children: ReactNode }) {
   const [digest, setDigest] = useState<DigestResponse | null>(null);
   const [running, setRunning] = useState(false);
@@ -22,6 +29,7 @@ export function ReviewProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  // Fetch the latest stored digest into state.
   const reload = useCallback(
     () => api.getDigest().then(setDigest).catch((e) => setError(String(e))),
     [],
@@ -29,8 +37,10 @@ export function ReviewProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { reload(); }, [reload]);
 
-  // Live re-scan first; fall back to replaying the cached scan if the AI is
-  // rate-limited, so a result always appears. Abortable via stopReview().
+  /**
+   * Live re-scan first; fall back to replaying the cached scan if the AI is
+   * rate-limited, so a result always appears. Abortable via stopReview().
+   */
   const runReview = useCallback(async () => {
     const controller = new AbortController();
     abortRef.current = controller;
@@ -58,8 +68,10 @@ export function ReviewProvider({ children }: { children: ReactNode }) {
     }
   }, [reload]);
 
-  // Truly stops the run: tells the backend to cancel (it unwinds without
-  // saving) and aborts the request so the UI is freed immediately.
+  /**
+   * Truly stops the run: tells the backend to cancel (it unwinds without
+   * saving) and aborts the request so the UI is freed immediately.
+   */
   const stopReview = useCallback(() => {
     api.cancelDigest().catch(() => {});
     abortRef.current?.abort();
@@ -74,6 +86,7 @@ export function ReviewProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Access the review context; throws if used outside a ReviewProvider. */
 export function useReview(): ReviewState {
   const ctx = useContext(ReviewCtx);
   if (!ctx) throw new Error("useReview must be used within a ReviewProvider");

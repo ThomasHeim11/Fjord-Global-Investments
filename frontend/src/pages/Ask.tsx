@@ -1,3 +1,8 @@
+/**
+ * PortfolioGPT chat page: a conversational interface for asking free-form
+ * questions across the register, agent letters and board notifications.
+ * Conversations are persisted server-side and cited sources open as PDFs.
+ */
 import {
   lazy,
   Suspense,
@@ -39,6 +44,7 @@ const SUGGESTIONS = [
   },
 ];
 
+/** The PortfolioGPT chat page: conversation sidebar, message thread and composer. */
 export function Ask() {
   const [chats, setChats] = useState<ChatSummary[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -52,6 +58,7 @@ export function Ask() {
 
   const empty = messages.length === 0;
 
+  /** Re-fetch the conversation list (titles and ordering are owned by the server). */
   const refreshList = () =>
     api
       .listChats()
@@ -71,6 +78,7 @@ export function Ask() {
     ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
   }, [input]);
 
+  // keep the latest turn in view as the thread grows
   useEffect(() => {
     setTimeout(
       () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
@@ -78,6 +86,7 @@ export function Ask() {
     );
   }, [messages.length]);
 
+  /** Load and display a stored conversation's full message history. */
   const openChat = async (id: string) => {
     if (id === activeId) return;
     setActiveId(id);
@@ -91,6 +100,7 @@ export function Ask() {
     }
   };
 
+  /** Reset to a blank, unsaved conversation (no server call until the first message). */
   const newChat = () => {
     setActiveId(null);
     setMessages([]);
@@ -98,6 +108,7 @@ export function Ask() {
     setInput("");
   };
 
+  /** Delete a conversation server-side; if it was active, fall back to a new chat. */
   const deleteChat = async (id: string) => {
     try {
       await api.deleteChat(id);
@@ -108,6 +119,10 @@ export function Ask() {
     refreshList();
   };
 
+  /**
+   * Send a question: optimistically append it, await the answer, then store the
+   * reply with its sources. On error the unanswered question is rolled back.
+   */
   const send = async (question: string) => {
     if (!question.trim() || busy) return;
     const userMsg: ChatMessage = { role: "user", content: question };
@@ -132,6 +147,7 @@ export function Ask() {
     }
   };
 
+  // Enter sends, Shift+Enter inserts a newline.
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();

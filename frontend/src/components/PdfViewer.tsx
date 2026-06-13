@@ -1,3 +1,9 @@
+/**
+ * Modal that renders a letter PDF in-app via react-pdf and highlights the
+ * quoted evidence line, so findings stay traceable without relying on the
+ * browser's PDF handling. Imported lazily by FindingCard to keep the heavy
+ * PDF.js bundle out of the initial page load.
+ */
 import { useEffect, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -9,12 +15,16 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
+/** Escapes regex metacharacters so the highlight term is matched literally. */
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// Renders the real letter inside the app and highlights the exact quoted line,
-// so evidence is traceable without depending on the browser's PDF handling.
+/**
+ * Renders the letter PDF in an overlay modal and wraps the highlight term in
+ * <mark> within each text run. Closes on Escape, backdrop click, or the close
+ * button.
+ */
 export function PdfViewer({
   url,
   filename,

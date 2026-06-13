@@ -1,3 +1,9 @@
+/**
+ * Shared domain types mirroring the backend API payloads: entities, findings,
+ * digest runs, board updates, and filter metadata.
+ */
+
+/** A subsidiary entity record from the register. */
 export interface Entity {
   entity_id: string;
   entity_name: string | null;
@@ -17,8 +23,10 @@ export interface Entity {
   asset_description: string;
 }
 
+/** Finding severity level (maps to High/Medium/Low in the UI). */
 export type Severity = "critical" | "warning" | "info";
 
+/** A single review finding produced by the analysis pipeline. */
 export interface Finding {
   id: number;
   run_id: number;
@@ -33,6 +41,7 @@ export interface Finding {
   detected_by: string;
 }
 
+/** Metadata for one analysis run, including aggregate finding counts. */
 export interface DigestRun {
   id: number;
   created_at: string;
@@ -42,11 +51,13 @@ export interface DigestRun {
   stats: { total: number; critical: number; warning: number; info: number };
 }
 
+/** API response pairing a run with its findings. */
 export interface DigestResponse {
   run: DigestRun | null;
   findings: Finding[];
 }
 
+/** A board notification, optionally resolved to a register entity. */
 export interface BoardUpdate {
   id: number;
   date_raw: string;
@@ -60,6 +71,7 @@ export interface BoardUpdate {
   resolution_note: string | null;
 }
 
+/** Full detail view for one entity: the record plus its updates, findings, and children. */
 export interface EntityDetail {
   entity: Entity;
   updates: BoardUpdate[];
@@ -67,6 +79,7 @@ export interface EntityDetail {
   children: Pick<Entity, "entity_id" | "entity_name" | "jurisdiction" | "status">[];
 }
 
+/** Distinct filter values (jurisdictions, statuses, etc.) for populating UI filters. */
 export interface Meta {
   jurisdictions: string[];
   statuses: string[];
