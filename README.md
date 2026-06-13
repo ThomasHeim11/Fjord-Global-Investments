@@ -15,35 +15,36 @@ Where two sources disagree it shows both side by side ("Per the agent letter:
 2026-06-19. Per our register: 2028-01-10"), and you can **click the letter to
 open the actual PDF with the exact line highlighted**, so every finding is
 traceable to its source.
+![alt text](image.png)
 
 **Register** is the subsidiary register, finally searchable: all 100 entities
 in a table you can filter and sort, colour-coded by status. Click any entity
 for its full record, who owns it, what it owns, the notifications matched to
 it, and any issues found on it. Every finding in Review links here.
+![alt text](image-1.png)
 
 **PortfolioGPT** answers natural-language questions across the register, the
 agent letters and the board notifications, with its sources cited (and letter
 sources open the PDF, same as Review). Conversations are saved, like a chat
 app. For example: "What is each agent asking us to do, and by when?" or "Which
 dissolved entities still have an active board mandate?"
+![alt text](image-2.png)
 
 ## How it works
 
 Three stages: get the messy data clean, make it searchable, then let the AI
-reason over it.
+reason over it. The two AI features read that data in deliberately different
+ways (more on that below).
 
 ```
-   1. PREPARE              2. STORE & INDEX            3. USE IT (the AI)
-   ----------             ----------------            ------------------
+   PREPARE             STORE & INDEX        USE IT
+   -------             -------------        ------
 
-   CSV  ─┐                SQLite  the register,       REVIEW   one click finds
-   JSON  ├─►  ingest ─►           queried with SQL ─► every issue + a fix
-   PDFs ─┘                BM25    keyword index    ─► PORTFOLIOGPT  ask in
-                          vector  meaning index       plain English, with
-                                                      cited sources
-                                                            │
-                                                            ▼
-                                                      React frontend
+   CSV  ┐              SQLite  register     REVIEW        reads everything
+   JSON ┼──► ingest ─► BM25    keywords ──► PORTFOLIOGPT  retrieves relevant bits
+   PDFs ┘              vector  meaning                │
+                                                      ▼
+                                                   React UI
 ```
 
 **1. Prepare the data.** Ingest reads the three sources, extracts text from
@@ -52,13 +53,25 @@ them to one calendar). Values are stored as they are, blanks and oddities
 included, because the messiness is exactly what we want to flag, not silently
 "fix".
 
-**2. Store and index (SQLite + hybrid RAG).** The register is structured data,
-so it lives in SQLite and is queried with plain SQL. The free-text documents
-(letters and notifications) also get two search indexes: a keyword index
-(BM25) for exact matches like entity names and legal suffixes, and a vector
-index (local embeddings) for meaning-based matches like "compliance problems".
-Searching both and merging the results is "hybrid RAG", and it powers
-PortfolioGPT:
+**2. Store and index.** The register is structured data, so it lives in SQLite
+and is queried with plain SQL. The free-text documents (letters and
+notifications) also get two search indexes: a keyword index (BM25) for exact
+matches like entity names and legal suffixes, and a vector index (local
+embeddings) for meaning-based matches like "compliance problems".
+
+**3. Two AI features, two access patterns.** This is the core design choice,
+and the part interviewers tend to ask about:
+
+- **Review** is an exhaustive audit with _no search query_, so it reads
+  **everything**: the full register from SQL, plus every letter and
+  notification in full. It does **not** use retrieval. For an audit,
+  completeness beats relevance, a review that silently skips one entity is
+  worse than useless.
+
+- **PortfolioGPT** answers a _specific question_, so it uses **hybrid RAG**: it
+  searches both indexes, merges the rankings, and feeds the LLM only the most
+  relevant passages. Here relevance is the point, you don't want all 100
+  entities in the prompt just to answer one question.
 
 ```
    How PortfolioGPT finds the right text (hybrid RAG):
@@ -69,10 +82,14 @@ PortfolioGPT:
 ```
 
 The two searches catch different things, so we run both and merge the rankings
-(reciprocal rank fusion, which needs no score calibration).
+(reciprocal rank fusion, which needs no score calibration). Full-context Review
+works because this dataset is small; at thousands of documents the Review would
+move onto this same retrieval path.
 
-**3. Review (the AI pipeline).** One request (`POST /api/digest`) runs the
-analysis as a series of focused passes:
+### Inside the Review pipeline
+
+One request (`POST /api/digest`) runs the analysis as a series of focused
+passes over the full data:
 
 1. **Entity resolution**: match each messy notification name to the register.
    "No match" is a valid answer; every unmatched notification becomes an
